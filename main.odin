@@ -10,7 +10,15 @@ main :: proc() {
     count := utf8.rune_count_in_string(str)
     fmt.println("rune length: {0}", count)
 
-    for r in str {
-        fmt.println(r)
+    for c in str {
+        fmt.println(c)
     }
+
+    p : ^int
+    p = new(int)
+    defer free(p)
+
+    fmt.println(p^) // always zero
+    p^ = 10
+    fmt.println(p^)
 }

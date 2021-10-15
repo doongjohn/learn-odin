@@ -47,19 +47,36 @@ main :: proc() {
         }
     }
 
+
+    // read runes from stdin
     {
         stdin_stream := os.stream_from_handle(os.stdin)
         reader := io.to_rune_reader(stdin_stream)
-        seeker := io.to_seeker(stdin_stream)
         
+        input_builder := strings.make_builder_none()
         input_len := 0
+        
         ch, size, err := io.read_rune(reader, &input_len)
-        fmt.print(ch)
-        for true {
-            ch, size, err = io.read_rune(reader, &input_len)
-            if ch == '\n' || err == .Empty { break }
-            fmt.print(ch)
+        
+        num : int
+        r_err : io.Error
+
+        if ch != '\n' && err != .Empty {
+            num, r_err = strings.write_rune_builder(&input_builder, ch)
+
+            for true {
+                ch, size, err = io.read_rune(reader, &input_len)
+                
+                if ch != '\n' && err != .Empty {
+                    num, r_err = strings.write_rune_builder(&input_builder, ch)
+                } else {
+                    break
+                }
+            }
         }
-        fmt.print('\n')
+
+        input := strings.to_string(input_builder)
+
+        fmt.println(input)
     }
 }

@@ -1,6 +1,9 @@
 package main
 
+import "core:io"
+import "core:os"
 import "core:fmt"
+import "core:strings"
 import "core:unicode/utf8"
 
 main :: proc() {
@@ -50,33 +53,46 @@ main :: proc() {
 
     // read runes from stdin
     {
-        stdin_stream := os.stream_from_handle(os.stdin)
-        reader := io.to_rune_reader(stdin_stream)
-        
-        input_builder := strings.make_builder_none()
-        input_len := 0
-        
-        ch, size, err := io.read_rune(reader, &input_len)
-        
-        num : int
-        r_err : io.Error
+        input_builder := read_from_stdin()
+        defer strings.destroy_builder(&input_builder)
 
-        if ch != '\n' && err != .Empty {
-            num, r_err = strings.write_rune_builder(&input_builder, ch)
+        fmt.println(strings.to_string(input_builder))
+    }
+}
 
-            for true {
-                ch, size, err = io.read_rune(reader, &input_len)
-                
-                if ch != '\n' && err != .Empty {
-                    num, r_err = strings.write_rune_builder(&input_builder, ch)
-                } else {
-                    break
-                }
+
+read_from_stdin :: proc() -> strings.Builder {
+    stdin_stream := os.stream_from_handle(os.stdin)
+
+    Data :: struct {
+        stdin_reader: io.Rune_Reader,
+        input_builder: strings.Builder,
+        ch: rune,
+        size: int,
+        err: io.Error,
+    }
+
+    data := Data{}
+    data.stdin_reader = io.to_rune_reader(stdin_stream)
+    data.input_builder = strings.make_builder_none()
+
+    append_to_builder :: proc(data: ^Data) -> bool {
+        data.ch, data.size, data.err = io.read_rune(data.stdin_reader)
+        not_ended := data.ch != '\n' && data.err != .Empty
+        if not_ended {
+            // TODO: use this results
+            strings.write_rune_builder(&data.input_builder, data.ch)
+        }
+        return not_ended
+    }
+
+    if append_to_builder(&data) {
+        for true {
+            if !append_to_builder(&data) {
+                break
             }
         }
-
-        input := strings.to_string(input_builder)
-
-        fmt.println(input)
     }
+
+    return data.input_builder
 }

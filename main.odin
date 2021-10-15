@@ -63,17 +63,16 @@ main :: proc() {
 
 read_from_stdin :: proc() -> strings.Builder {
     stdin_stream := os.stream_from_handle(os.stdin)
-    stdin_reader := io.to_rune_reader(stdin_stream)
+    stdin_reader := io.to_byte_reader(stdin_stream)
     input_builder := strings.make_builder_none()
 
-    ch : rune
-    size : int
+    b : byte
     err : io.Error
 
     for true {
-        ch, size, err = io.read_rune(stdin_reader)
-        if ch == '\n' || err != .None { break }
-        strings.write_rune_builder(&input_builder, ch)
+        b, err = io.read_byte(stdin_reader)
+        if b == '\n' || err != .None { break }
+        strings.write_byte(&input_builder, b)
     }
 
     return input_builder

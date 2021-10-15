@@ -63,36 +63,18 @@ main :: proc() {
 
 read_from_stdin :: proc() -> strings.Builder {
     stdin_stream := os.stream_from_handle(os.stdin)
+    stdin_reader := io.to_rune_reader(stdin_stream)
+    input_builder := strings.make_builder_none()
 
-    Data :: struct {
-        stdin_reader: io.Rune_Reader,
-        input_builder: strings.Builder,
-        ch: rune,
-        size: int,
-        err: io.Error,
+    ch : rune
+    size : int
+    err : io.Error
+
+    for true {
+        ch, size, err = io.read_rune(stdin_reader)
+        if ch == '\n' || err != .None { break }
+        strings.write_rune_builder(&input_builder, ch)
     }
 
-    data := Data{}
-    data.stdin_reader = io.to_rune_reader(stdin_stream)
-    data.input_builder = strings.make_builder_none()
-
-    append_to_builder :: proc(data: ^Data) -> bool {
-        data.ch, data.size, data.err = io.read_rune(data.stdin_reader)
-        not_ended := data.ch != '\n' && data.err != .Empty
-        if not_ended {
-            // TODO: use this results
-            strings.write_rune_builder(&data.input_builder, data.ch)
-        }
-        return not_ended
-    }
-
-    if append_to_builder(&data) {
-        for true {
-            if !append_to_builder(&data) {
-                break
-            }
-        }
-    }
-
-    return data.input_builder
+    return input_builder
 }

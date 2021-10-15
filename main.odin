@@ -69,7 +69,7 @@ read_from_stdin :: proc() -> strings.Builder {
     b : byte
     err : io.Error
 
-    for true {
+    for {
         b, err = io.read_byte(stdin_reader)
         if b == '\n' || err != .None { break }
         strings.write_byte(&input_builder, b)

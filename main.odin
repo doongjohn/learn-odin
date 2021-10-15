@@ -46,4 +46,20 @@ main :: proc() {
             fmt.println(c)
         }
     }
+
+    {
+        stdin_stream := os.stream_from_handle(os.stdin)
+        reader := io.to_rune_reader(stdin_stream)
+        seeker := io.to_seeker(stdin_stream)
+        
+        input_len := 0
+        ch, size, err := io.read_rune(reader, &input_len)
+        fmt.print(ch)
+        for true {
+            ch, size, err = io.read_rune(reader, &input_len)
+            if ch == '\n' || err == .Empty { break }
+            fmt.print(ch)
+        }
+        fmt.print('\n')
+    }
 }

@@ -26,10 +26,11 @@ main :: proc() {
             return
         }
 
+        fmt.printf("[input]: \"{}\"\n", input)
+        
         result, ok := calculate(input)
-        fmt.printf("input: \"{}\"\n", input)
         if ok {
-            fmt.printf("result: {}\n", result)
+            fmt.printf("[result]: {}\n", result)
         }
     }
 }
@@ -83,7 +84,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             // fmt.println(input[pos:pos+offset])
 
             if !ok {
-                fmt.print("[Error]: can not parse number.")
+                fmt.print("[error]: can not parse number.")
                 fmt.printf("(at {})\n", pos)
                 return 0, false
             }
@@ -95,7 +96,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             if nums_len == 1 {
                 // check operator
                 if func == nil {
-                    fmt.printf("[Error]: can not find any operator after \"{}\".", prev_num)
+                    fmt.printf("[error]: can not find any operator after \"{}\".", prev_num)
                     fmt.printf("(at {})\n", prev_num_pos)
                     return 0, false
                 }
@@ -115,14 +116,14 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
             // check valid operator
             if (!is_op) {
-                fmt.printf("[Error]: \"{}\" is not a valid operator.", ch)
+                fmt.printf("[error]: \"{}\" is not a valid operator.", input[pos:pos+1])
                 fmt.printf("(at {})\n", pos)
                 return 0, false
             }
 
             // check valid infix function
             if nums_len < 0 {
-                fmt.print("[Error]: There must be a number before the infix operator.")
+                fmt.print("[error]: There must be a number before the infix operator.")
                 fmt.printf("(at {})\n", pos)
                 return 0, false
             }
@@ -139,7 +140,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
     // check valid infix function
     if func != nil {
-        fmt.print("[Error]: There must be a number after the infix operator.")
+        fmt.print("[error]: There must be a number after the infix operator.")
         fmt.printf("(at {})\n", pos)
         return 0, false
     }

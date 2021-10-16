@@ -3,9 +3,13 @@ package main
 // TODO:
 // - [x] multi-digit numbers
 // - [x] +- prefixed numbers
+// - [ ] floating point numbers
 // - [ ] operator precedence
 // - [ ] grouping with parentheses
 // - [ ] custom math functions
+
+// https://en.wikipedia.org/wiki/Shunting-yard_algorithm
+// https://en.wikipedia.org/wiki/Operator-precedence_parser
 
 import "core:io"
 import "core:os"
@@ -27,7 +31,7 @@ main :: proc() {
         }
 
         fmt.printf("[input]: \"{}\"\n", input)
-        
+
         result, ok := calculate(input)
         if ok {
             fmt.printf("[result]: {}\n", result)
@@ -84,8 +88,8 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             // fmt.println(input[pos:pos+offset])
 
             if !ok {
-                fmt.print("[error]: can not parse number.")
-                fmt.printf("(at {})\n", pos)
+                print_error_prefix(input, &pos)
+                fmt.print("failed to parse this number.\n")
                 return 0, false
             }
 
@@ -94,10 +98,10 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             nums[nums_len] = num
 
             if nums_len == 1 {
-                // check operator
+                // check valid infix operator
                 if func == nil {
-                    fmt.printf("[error]: can not find any operator after \"{}\".", prev_num)
-                    fmt.printf("(at {})\n", prev_num_pos)
+                    print_error_prefix(input, &pos)
+                    fmt.printf("can not find any infix operator before \"{}\".\n", input[pos:pos+offset])
                     return 0, false
                 }
 
@@ -116,15 +120,15 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
             // check valid operator
             if (!is_op) {
-                fmt.printf("[error]: \"{}\" is not a valid operator.", input[pos:pos+1])
-                fmt.printf("(at {})\n", pos)
+                print_error_prefix(input, &pos)
+                fmt.printf("\"{}\" is not a valid operator.\n", input[pos:pos+1])
                 return 0, false
             }
 
             // check valid infix function
             if nums_len < 0 {
-                fmt.print("[error]: There must be a number before the infix operator.")
-                fmt.printf("(at {})\n", pos)
+                print_error_prefix(input, &pos)
+                fmt.print("There must be a number before the infix operator.\n")
                 return 0, false
             }
 
@@ -140,8 +144,8 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
     // check valid infix function
     if func != nil {
-        fmt.print("[error]: There must be a number after the infix operator.")
-        fmt.printf("(at {})\n", pos)
+        print_error_prefix(input, &pos)
+        fmt.print("There must be a number after the infix operator.\n")
         return 0, false
     }
 
@@ -180,6 +184,13 @@ func_mul :: proc(nums: [2]f32) -> f32 {
 
 func_div :: proc(nums: [2]f32) -> f32 {
     return nums[0] / nums[1]
+}
+
+
+print_error_prefix :: proc(input: string, pos: ^int) {
+    fmt.printf("[error]: {}\n", input)
+    for _ in 0 .. pos^ + len("[error]:") { fmt.print(" ") }
+    fmt.print("└> ")
 }
 
 

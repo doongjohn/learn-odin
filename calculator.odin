@@ -8,6 +8,7 @@ package main
 // - [ ] grouping with parentheses
 // - [ ] custom math functions
 
+// References:
 // https://en.wikipedia.org/wiki/Shunting-yard_algorithm
 // https://en.wikipedia.org/wiki/Operator-precedence_parser
 
@@ -44,9 +45,10 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
     nums_len := -1
     nums := [2]f32{0, 0}
 
-    // token data
+    // TODO:
+    // prev data for operator precedence
     prev_num: f32
-    prev_num_pos := -1
+    prev_func: proc(nums: [2]f32) -> f32
     
     // claculation proc
     func: proc(nums: [2]f32) -> f32
@@ -199,13 +201,12 @@ read_from_stdin :: proc() -> strings.Builder {
     stdin_reader := io.to_byte_reader(stdin_stream)
     input_builder := strings.make_builder_none()
 
-    b : u8
-    err : io.Error
-
+    ch: u8
+    err: io.Error
     for {
-        b, err = io.read_byte(stdin_reader)
-        if b == '\n' || err != .None { break }
-        strings.write_byte(&input_builder, b)
+        ch, err = io.read_byte(stdin_reader)
+        if ch == '\n' || err != .None { break }
+        strings.write_byte(&input_builder, ch)
     }
 
     return input_builder

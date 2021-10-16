@@ -51,7 +51,7 @@ main :: proc() {
     }
 
 
-    // read runes from stdin
+    // read string from stdin
     {
         input_builder := read_from_stdin()
         defer strings.destroy_builder(&input_builder)

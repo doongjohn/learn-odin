@@ -1,10 +1,11 @@
 package main
 
 // TODO:
-// 여러자리 숫자
-// +- 프리픽스
-// 연산자 우선순위
-// 함수
+// - [x] 여러자리 숫자
+// - [ ] +- 프리픽스
+// - [ ] 연산자 우선순위
+// - [ ] 괄호 그룹
+// - [ ] 함수
 
 import "core:io"
 import "core:os"
@@ -20,63 +21,133 @@ main :: proc() {
     input := strings.to_string(input_builder)
     defer strings.destroy_builder(&input_builder)
 
-    fmt.println(input)
-    fmt.printf("result: {}\n", calculate(input))
+    result, ok := calculate(input)
+    if ok {
+        fmt.printf("result: {}\n", result)
+    }
 }
 
+calculate :: proc(input: string) -> (result: f32, ok: bool) {
+    // parsed numbers
+    nums_len := -1
+    nums := [2]f32{0, 0}
 
-calc_add :: proc(nums: [2]f32) -> f32 {
+    // token data
+    prev_num: f32
+    prev_num_pos := -1
+    
+    // claculation proc
+    func: proc(nums: [2]f32) -> f32
+
+    // loop
+    pos := 0
+    for pos < len(input) {
+        ch := input[pos]
+
+        // DEBUG
+        // fmt.printf("pos: {}, char: {}\n", pos, input[pos:pos+1])
+
+        if ch == ' ' {
+            pos += 1
+            continue
+        }
+
+        is_num := strings.index_byte("0123456789", ch) >= 0
+
+        if is_num {
+            // get number u8 count
+            num_u8_count := get_num_u8_count(input[pos:])
+            // fmt.printf("num u8 count: {}\n", num_u8_count)
+
+            // convert to f32
+            num, ok := strconv.parse_f32(input[pos:pos+num_u8_count])
+            if !ok {
+                fmt.print("[Error]: can not parse number.")
+                fmt.printf("(at {})\n", pos)
+                return 0, false
+            }
+
+            // update numbers
+            nums_len += 1
+            nums[nums_len] = num
+            if nums_len == 1 {
+                // check operator
+                if func == nil {
+                    fmt.printf("[Error]: can not find any operator after \"{}\".", prev_num)
+                    fmt.printf("(at {})\n", prev_num_pos)
+                    return 0, false
+                }
+
+                // run calculation function
+                nums_len = 0
+                nums[0] = func(nums)
+                func = nil
+
+                // show nums
+                fmt.println(nums)
+            }
+
+            prev_num_pos = pos
+            prev_num = num
+            pos += num_u8_count
+            continue
+        }
+
+        is_op := strings.index_byte("+-*/", ch) >= 0
+
+        // check valid operator
+        if (!is_op) {
+            fmt.printf("[Error]: \"{}\" is not a valid operator.", ch)
+            fmt.printf("(at {})\n", pos)
+            return 0, false
+        }
+
+        // check valid infix function
+        if nums_len < 0 {
+            fmt.print("[Error]: There must be a number before the operator.")
+            fmt.printf("(at {})\n", pos)
+            return 0, false
+        }
+
+        // set calculation function
+        switch ch {
+        case '+': func = func_add
+        case '-': func = func_sub
+        case '*': func = func_mul
+        case '/': func = func_div
+        }
+
+        pos += 1
+    }
+
+    return nums[0], true
+}
+
+get_num_u8_count :: proc(slice: string) -> int {
+    i := 0
+    for i < len(slice) {
+        if strings.index_byte("0123456789", slice[i]) < 0 {
+            return i
+        }
+        i += 1
+    }
+    return i
+}
+
+func_add :: proc(nums: [2]f32) -> f32 {
     return nums[0] + nums[1]
 }
 
-calc_sub :: proc(nums: [2]f32) -> f32 {
+func_sub :: proc(nums: [2]f32) -> f32 {
     return nums[0] - nums[1]
 }
 
-calc_mul :: proc(nums: [2]f32) -> f32 {
+func_mul :: proc(nums: [2]f32) -> f32 {
     return nums[0] * nums[1]
 }
 
-calc_div :: proc(nums: [2]f32) -> f32 {
+func_div :: proc(nums: [2]f32) -> f32 {
     return nums[0] / nums[1]
-}
-
-calculate :: proc(input: string) -> f32 {
-    i := -1
-    nums := [2]f32{ 0, 0 }
-    calc := proc(nums: [2]f32) -> f32 { return 0 }
-
-    for ch in input {
-        str := utf8.runes_to_string({ch})
-        num, is_num := strconv.parse_f32(str)
-
-        if strings.contains_rune("+-*/", ch) >= 0 {
-            is_num = false
-        }
-        
-        if is_num {
-            i += 1
-            nums[i] = num
-            if i == 1 {
-                i = 0
-                nums[0] = calc(nums)
-                fmt.println(nums)
-            }
-        } else {
-            if i < 0 {
-                fmt.println("연산자의 좌측에는 숫자가 있어야 합니다")
-                continue
-            }
-
-            switch ch {
-            case '+': calc = calc_add
-            case '-': calc = calc_sub
-            case '*': calc = calc_mul
-            case '/': calc = calc_div
-            }
-        }
-    }
-    return nums[0]
 }
 
 
@@ -85,7 +156,7 @@ read_from_stdin :: proc() -> strings.Builder {
     stdin_reader := io.to_byte_reader(stdin_stream)
     input_builder := strings.make_builder_none()
 
-    b : byte
+    b : u8
     err : io.Error
 
     for {

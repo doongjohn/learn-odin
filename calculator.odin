@@ -15,15 +15,22 @@ import "core:strconv"
 import "core:unicode/utf8"
 
 main :: proc() {
-    fmt.print("input math: ")
+    for {
+        fmt.print("calculator > ")
 
-    input_builder := read_from_stdin()
-    input := strings.to_string(input_builder)
-    defer strings.destroy_builder(&input_builder)
+        input_builder := read_from_stdin()
+        defer strings.destroy_builder(&input_builder)
 
-    result, ok := calculate(input)
-    if ok {
-        fmt.printf("result: {}\n", result)
+        input := strings.trim_space(strings.to_string(input_builder))
+        if input == "exit" {
+            return
+        }
+
+        result, ok := calculate(input)
+        fmt.printf("input: \"{}\"\n", input)
+        if ok {
+            fmt.printf("result: {}\n", result)
+        }
     }
 }
 
@@ -52,8 +59,10 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
         // current byte
         ch = input[pos]
+
         // DEBUG
         // fmt.printf("pos: {}, char: {}\n", pos, input[pos:pos+1])
+        
         if ch == ' ' { continue }
 
         // parse number
@@ -69,7 +78,10 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
             // convert to f32
             num, ok := strconv.parse_f32(input[pos:pos+offset])
-            fmt.println(input[pos:pos+offset])
+
+            // DEBUG
+            // fmt.println(input[pos:pos+offset])
+
             if !ok {
                 fmt.print("[Error]: can not parse number.")
                 fmt.printf("(at {})\n", pos)

@@ -66,13 +66,13 @@ read_from_stdin :: proc() -> strings.Builder {
     stdin_reader := io.to_byte_reader(stdin_stream)
     input_builder := strings.make_builder_none()
 
-    b : byte
-    err : io.Error
+    ch: byte
+    err: io.Error
 
     for {
-        b, err = io.read_byte(stdin_reader)
-        if b == '\n' || err != .None { break }
-        strings.write_byte(&input_builder, b)
+        ch, err = io.read_byte(stdin_reader)
+        if ch == '\n' || err != .None { break }
+        strings.write_byte(&input_builder, ch)
     }
 
     return input_builder

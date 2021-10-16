@@ -57,9 +57,9 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         if ch == ' ' { continue }
 
         // parse number
-        num_offset, is_num := get_num_u8_count(input[pos:])
+        num_offset, is_num := calc_get_number(input[pos:])
         // check sign prefix
-        if nums_len == 0 && (ch == '+' || ch == '-') && func == nil {
+        if nums_len == 0 && func == nil && strings.index_byte("+-", ch) >= 0 {
             is_num = false
         }
 
@@ -69,6 +69,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
             // convert to f32
             num, ok := strconv.parse_f32(input[pos:pos+offset])
+            fmt.println(input[pos:pos+offset])
             if !ok {
                 fmt.print("[Error]: can not parse number.")
                 fmt.printf("(at {})\n", pos)
@@ -135,17 +136,17 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
     return nums[0], true
 }
 
-get_num_u8_count :: proc(slice: string) -> (i: int, is_num: bool) {
-    if strings.index_byte("+-", slice[0]) >= 0{
+calc_get_number :: proc(slice: string) -> (i: int, is_num: bool) {
+    if strings.index_byte("+-", slice[0]) >= 0 {
         if len(slice) == 1 || strings.index_byte("0123456789", slice[1]) < 0 {
-            return i, false
+            return 0, false
         } else {
             i += 1
         }
     }
     for i < len(slice) {
         if strings.index_byte("0123456789", slice[i]) < 0 {
-            return i, true
+            return i, i > 0
         }
         i += 1
     }

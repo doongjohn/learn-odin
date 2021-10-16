@@ -1,11 +1,11 @@
 package main
 
 // TODO:
-// - [x] 여러자리 숫자
-// - [x] +- 프리픽스
-// - [ ] 연산자 우선순위
-// - [ ] 괄호 그룹
-// - [ ] 함수
+// - [x] multi-digit numbers
+// - [x] +- prefixed numbers
+// - [ ] operator precedence
+// - [ ] grouping with parentheses
+// - [ ] custom math functions
 
 import "core:io"
 import "core:os"

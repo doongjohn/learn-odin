@@ -2,7 +2,7 @@ package main
 
 // TODO:
 // - [x] 여러자리 숫자
-// - [ ] +- 프리픽스
+// - [x] +- 프리픽스
 // - [ ] 연산자 우선순위
 // - [ ] 괄호 그룹
 // - [ ] 함수
@@ -56,15 +56,19 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         // fmt.printf("pos: {}, char: {}\n", pos, input[pos:pos+1])
         if ch == ' ' { continue }
 
-        is_num := strings.index_byte("0123456789", ch) >= 0
+        // parse number
+        num_offset, is_num := get_num_u8_count(input[pos:])
+        // check sign prefix
+        if nums_len == 0 && (ch == '+' || ch == '-') && func == nil {
+            is_num = false
+        }
 
         if is_num {
-            // get number u8 count
-            num_u8_count := get_num_u8_count(input[pos:])
-            // fmt.printf("num u8 count: {}\n", num_u8_count)
+            // set offset
+            offset = num_offset
 
             // convert to f32
-            num, ok := strconv.parse_f32(input[pos:pos+num_u8_count])
+            num, ok := strconv.parse_f32(input[pos:pos+offset])
             if !ok {
                 fmt.print("[Error]: can not parse number.")
                 fmt.printf("(at {})\n", pos)
@@ -74,6 +78,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             // update numbers
             nums_len += 1
             nums[nums_len] = num
+
             if nums_len == 1 {
                 // check operator
                 if func == nil {
@@ -86,41 +91,36 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
                 nums_len = 0
                 nums[0] = func(nums)
                 func = nil
-
-                // show nums
-                fmt.println(nums)
             }
 
             // save previous num
             prev_num_pos = pos
             prev_num = num
+        } else {
+            // parse operator
+            is_op := strings.index_byte("+-*/", ch) >= 0
 
-            offset = num_u8_count
-            continue
-        }
+            // check valid operator
+            if (!is_op) {
+                fmt.printf("[Error]: \"{}\" is not a valid operator.", ch)
+                fmt.printf("(at {})\n", pos)
+                return 0, false
+            }
 
-        is_op := strings.index_byte("+-*/", ch) >= 0
+            // check valid infix function
+            if nums_len < 0 {
+                fmt.print("[Error]: There must be a number before the infix operator.")
+                fmt.printf("(at {})\n", pos)
+                return 0, false
+            }
 
-        // check valid operator
-        if (!is_op) {
-            fmt.printf("[Error]: \"{}\" is not a valid operator.", ch)
-            fmt.printf("(at {})\n", pos)
-            return 0, false
-        }
-
-        // check valid infix function
-        if nums_len < 0 {
-            fmt.print("[Error]: There must be a number before the infix operator.")
-            fmt.printf("(at {})\n", pos)
-            return 0, false
-        }
-
-        // set calculation function
-        switch ch {
-        case '+': func = func_add
-        case '-': func = func_sub
-        case '*': func = func_mul
-        case '/': func = func_div
+            // set calculation function
+            switch ch {
+            case '+': func = func_add
+            case '-': func = func_sub
+            case '*': func = func_mul
+            case '/': func = func_div
+            }
         }
     }
 
@@ -135,15 +135,21 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
     return nums[0], true
 }
 
-get_num_u8_count :: proc(slice: string) -> int {
-    i := 0
+get_num_u8_count :: proc(slice: string) -> (i: int, is_num: bool) {
+    if strings.index_byte("+-", slice[0]) >= 0{
+        if len(slice) == 1 || strings.index_byte("0123456789", slice[1]) < 0 {
+            return i, false
+        } else {
+            i += 1
+        }
+    }
     for i < len(slice) {
         if strings.index_byte("0123456789", slice[i]) < 0 {
-            return i
+            return i, true
         }
         i += 1
     }
-    return i
+    return i, true
 }
 
 func_add :: proc(nums: [2]f32) -> f32 {

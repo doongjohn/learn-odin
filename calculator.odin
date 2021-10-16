@@ -41,16 +41,20 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
     // loop
     pos := 0
+    offset := 0
+    ch: u8
     for pos < len(input) {
-        ch := input[pos]
+        // increase position
+        defer {
+            pos += offset == 0 ? 1 : offset
+            offset = 0
+        }
 
+        // current byte
+        ch = input[pos]
         // DEBUG
         // fmt.printf("pos: {}, char: {}\n", pos, input[pos:pos+1])
-
-        if ch == ' ' {
-            pos += 1
-            continue
-        }
+        if ch == ' ' { continue }
 
         is_num := strings.index_byte("0123456789", ch) >= 0
 
@@ -87,9 +91,11 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
                 fmt.println(nums)
             }
 
+            // save previous num
             prev_num_pos = pos
             prev_num = num
-            pos += num_u8_count
+
+            offset = num_u8_count
             continue
         }
 
@@ -104,7 +110,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
         // check valid infix function
         if nums_len < 0 {
-            fmt.print("[Error]: There must be a number before the operator.")
+            fmt.print("[Error]: There must be a number before the infix operator.")
             fmt.printf("(at {})\n", pos)
             return 0, false
         }
@@ -116,10 +122,16 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         case '*': func = func_mul
         case '/': func = func_div
         }
-
-        pos += 1
     }
 
+    // check valid infix function
+    if func != nil {
+        fmt.print("[Error]: There must be a number after the infix operator.")
+        fmt.printf("(at {})\n", pos)
+        return 0, false
+    }
+
+    // return calculation result
     return nums[0], true
 }
 

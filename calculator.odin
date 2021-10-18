@@ -104,7 +104,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         ch = input[pos]
 
         // DEBUG
-        fmt.printf("[{}], char: {}\n", pos, input[pos:pos+1])
+        // fmt.printf("[{}], char: {}\n", pos, input[pos:pos+1])
         
         // ignore space
         if ch == ' ' { continue }
@@ -124,7 +124,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             offset = num_offset
 
             // DEBUG
-            fmt.println(input[pos:pos+offset])
+            // fmt.println(input[pos:pos+offset])
 
             // update numbers
             nums_i += 1

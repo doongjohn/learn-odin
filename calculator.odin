@@ -68,7 +68,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         ch = input[pos]
 
         // DEBUG
-        fmt.printf("[{}], char: {}\n", pos, input[pos:pos+1])
+        // fmt.printf("[{}], char: {}\n", pos, input[pos:pos+1])
         
         // ignore space
         if ch == ' ' { continue }
@@ -78,8 +78,9 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
         // check sign prefix
         if nums_len == 0 && func == nil && strings.index_byte("+-", ch) >= 0 {
-            // fmt.println("it's op")
             is_num = false
+            // DEBUG
+            // fmt.println("it's op")
         }
 
         if is_num {
@@ -94,7 +95,6 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             nums[nums_len] = num
 
             if nums_len == 1 {
-                fmt.println(func)
                 // check valid infix operator
                 if func == nil {
                     print_error_prefix(input, &pos)

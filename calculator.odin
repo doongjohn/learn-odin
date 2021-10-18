@@ -4,7 +4,7 @@ package main
 // - [x] multi-digit numbers
 // - [x] +- prefixed numbers
 // - [x] floating point numbers
-// - [ ] operator precedence
+// - [x] operator precedence
 // - [ ] grouping with parentheses
 // - [ ] custom math functions
 
@@ -42,16 +42,14 @@ main :: proc() {
 
 calculate :: proc(input: string) -> (result: f32, ok: bool) {
     // parsed numbers
-    nums_len := -1
+    nums_i := -1
     nums := [2]f32{0, 0}
-    
-    // claculation proc
-    func: proc(nums: [2]f32) -> f32
 
-    // TODO:
-    // kept data for operator precedence
-    kept_num: f32
-    kept_func: proc(nums: [2]f32) -> f32
+    // claculation proc
+    func1: proc(nums: [2]f32) -> f32
+
+    func0_lhs: f32
+    func0: proc(nums: [2]f32) -> f32
 
     // loop
     pos, offset := 0, 0
@@ -76,11 +74,8 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         num_offset, num, is_num := calc_parse_number(input[pos:])
 
         // check +- operator
-        if nums_len == 0 && func == nil && strings.index_byte("+-", ch) >= 0 {
+        if nums_i == 0 && strings.index_byte("+-", ch) >= 0 {
             is_num = false
-
-            // DEBUG
-            // fmt.println("it's op")
         }
 
         if is_num {
@@ -91,87 +86,96 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             // fmt.println(input[pos:pos+offset])
 
             // update numbers
-            nums_len += 1
-            nums[nums_len] = num
+            nums_i += 1
+            nums[nums_i] = num
 
             // if there are 2 numbers
-            if nums_len == 1 {
+            if nums_i == 1 {
                 // reset nums length
-                nums_len = 0
+                nums_i = 0
 
                 // check valid infix operator
-                if func == nil {
+                if func1 == nil {
                     print_error_prefix(input, &pos)
                     fmt.printf("can not find any infix operator before \"{}\".\n", input[pos:pos+offset])
                     return 0, false
                 }
 
+                // calculate mul & div
+                nums[0] = func1(nums)
+                func1 = nil
+
                 // 1 + 2 * 2
                 // ^^^^^
-                //     this is a plus: kept_num = `1`, kept_func = `+`
-                //     kept_func is nil: do nothing
+                //     this is a plus: func0_lhs = `1`, func0 = `+`
+                //     func0 is nil: do nothing
                 
                 // 1 + 2 * 2
                 //     ^^^^^
                 //         this is a multiplication. do it!
-                //         kept_func is not nil: calc kept_func
+                //         func0 is not nil: calc func0
 
-                // when mul & div
-                if func == func_mul || func == func_div {
-                    nums[0] = func(nums)
-                    func = nil
-
-                    if kept_func != nil {
-                        nums[0] = kept_func([2]f32{kept_num, nums[0]})
-                        kept_num = 0
-                        kept_func = nil
-                    }
-                    continue
-                }
-
-                // when add & sub
-                if kept_func != nil {
-                    nums[0] = kept_func([2]f32{kept_num, nums[0]})
-                    kept_num = 0
-                    kept_func = nil
-                }
-
-                kept_num = nums[0]
-                kept_func = func
+                // higher precedence gets executed before lower precedence
+                // func1 == operator precedence 2
+                // func0 == operator precedence 1
             }
         } else {
-            // parse operator
-            is_op := strings.index_byte("+-*/", ch) >= 0
-
             // check valid operator
-            if (!is_op) {
+            if (strings.index_byte("+-*/", ch) < 0) {
                 print_error_prefix(input, &pos)
                 fmt.printf("\"{}\" is not a valid operator.\n", input[pos:pos+1])
                 return 0, false
             }
 
             // check valid infix function
-            if nums_len < 0 {
+            if nums_i < 0 {
                 print_error_prefix(input, &pos)
                 fmt.print("There must be a number before the infix operator.\n")
                 return 0, false
             }
 
+            // calculate add & sub
+            if (strings.index_byte("+-", ch) >= 0 && func0 != nil) {
+                nums[0] = func0([2]f32{func0_lhs, nums[0]})
+            }
+
             // set calculation function
             switch ch {
-            case '+': func = func_add
-            case '-': func = func_sub
-            case '*': func = func_mul
-            case '/': func = func_div
+            case '+':
+                nums_i = -1
+                func0_lhs = nums[0]
+                func0 = func_add
+            case '-':
+                nums_i = -1
+                func0_lhs = nums[0]
+                func0 = func_sub
+            case '*':
+                func1 = func_mul
+            case '/':
+                func1 = func_div
             }
+
+            // DEBUG
+            // fmt.println(func0)
         }
     }
 
     // check valid infix function
-    if func != nil {
+    if func1 != nil {
         print_error_prefix(input, &pos)
         fmt.print("There must be a number after the infix operator.\n")
         return 0, false
+    }
+
+    // calculate add & sub
+    if func0 != nil {
+        // DEBUG
+        // fmt.printf("func0_lhs: {}, nums[0]: {}\n", func0_lhs, nums[0])
+
+        nums[0] = func0([2]f32{func0_lhs, nums[0]})
+        func0_lhs = 0
+        func0 = nil
+        func1 = nil
     }
 
     // return calculation result
@@ -180,6 +184,12 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
 
 calc_parse_number :: proc(slice: string) -> (i: int, num: f32, is_num: bool) {
+    if strings.index_byte("+-", slice[0]) >= 0 {
+        if len(slice) == 1 || strings.index_byte(".0123456789", slice[1]) < 0 {
+            return 0, 0, false
+        }
+    }
+
     for i < len(slice) {
         i += 1
         num, is_num = strconv.parse_f32(slice[:i])

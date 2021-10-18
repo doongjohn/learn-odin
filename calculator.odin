@@ -78,12 +78,14 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
     nums_i := -1
     nums := [2]f32{0, 0}
 
-    // claculation proc
+    // func precedence top
     func_top: proc(nums: [2]f32) -> f32
 
+    // func precedence 1
     func1_lhs: f32
     func1: proc(nums: [2]f32) -> f32
-
+    
+    // func precedence 0
     func0_lhs: f32
     func0: proc(nums: [2]f32) -> f32
 
@@ -156,13 +158,13 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
                 return 0, false
             }
 
-            // calculate mul & div
+            // calculate precedence 1
             if strings.index_byte("+-*/", ch) >= 0 && func1 != nil {
                 nums[0] = func1([2]f32{func1_lhs, nums[0]})
                 func1 = nil
             }
 
-            // calculate add & sub
+            // calculate precedence 0
             if strings.index_byte("+-", ch) >= 0 && func0 != nil {
                 nums[0] = func0([2]f32{func0_lhs, nums[0]})
                 func0 = nil
@@ -200,19 +202,14 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         return 0, false
     }
 
-    // calculate mul & div
+    // calculate precedence 1
     if func1 != nil {
         nums[0] = func1([2]f32{func1_lhs, nums[0]})
-        func1_lhs = 0
-        func1 = nil
     }
 
-    // calculate add & sub
+    // calculate precedence 0
     if func0 != nil {
-        fmt.printf("func0_lhs: {}, nums[0]: {}\n", func0_lhs, nums[0])
         nums[0] = func0([2]f32{func0_lhs, nums[0]})
-        func0_lhs = 0
-        func0 = nil
     }
 
     // return calculation result

@@ -44,18 +44,17 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
     // parsed numbers
     nums_len := -1
     nums := [2]f32{0, 0}
-
-    // TODO:
-    // prev data for operator precedence
-    prev_num: f32
-    prev_func: proc(nums: [2]f32) -> f32
     
     // claculation proc
     func: proc(nums: [2]f32) -> f32
 
+    // TODO:
+    // kept data for operator precedence
+    kept_num: f32
+    kept_func: proc(nums: [2]f32) -> f32
+
     // loop
-    pos := 0
-    offset := 0
+    pos, offset := 0, 0
     ch: u8
     for pos < len(input) {
         // increase position
@@ -76,9 +75,10 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         // parse number
         num_offset, num, is_num := calc_parse_number(input[pos:])
 
-        // check sign prefix
+        // check +- operator
         if nums_len == 0 && func == nil && strings.index_byte("+-", ch) >= 0 {
             is_num = false
+
             // DEBUG
             // fmt.println("it's op")
         }
@@ -94,7 +94,11 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             nums_len += 1
             nums[nums_len] = num
 
+            // if there are 2 numbers
             if nums_len == 1 {
+                // reset nums length
+                nums_len = 0
+
                 // check valid infix operator
                 if func == nil {
                     print_error_prefix(input, &pos)
@@ -102,14 +106,39 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
                     return 0, false
                 }
 
-                // run calculation function
-                nums_len = 0
-                nums[0] = func(nums)
-                func = nil
-            }
+                // 1 + 2 * 2
+                // ^^^^^
+                //     this is a plus: kept_num = `1`, kept_func = `+`
+                //     kept_func is nil: do nothing
+                
+                // 1 + 2 * 2
+                //     ^^^^^
+                //         this is a multiplication. do it!
+                //         kept_func is not nil: calc kept_func
 
-            // save previous num
-            prev_num = num
+                // when mul & div
+                if func == func_mul || func == func_div {
+                    nums[0] = func(nums)
+                    func = nil
+
+                    if kept_func != nil {
+                        nums[0] = kept_func([2]f32{kept_num, nums[0]})
+                        kept_num = 0
+                        kept_func = nil
+                    }
+                    continue
+                }
+
+                // when add & sub
+                if kept_func != nil {
+                    nums[0] = kept_func([2]f32{kept_num, nums[0]})
+                    kept_num = 0
+                    kept_func = nil
+                }
+
+                kept_num = nums[0]
+                kept_func = func
+            }
         } else {
             // parse operator
             is_op := strings.index_byte("+-*/", ch) >= 0

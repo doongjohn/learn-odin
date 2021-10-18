@@ -68,14 +68,17 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         ch = input[pos]
 
         // DEBUG
-        // fmt.printf("pos: {}, char: {}\n", pos, input[pos:pos+1])
+        fmt.printf("[{}], char: {}\n", pos, input[pos:pos+1])
         
+        // ignore space
         if ch == ' ' { continue }
 
         // parse number
-        num_offset, is_num := calc_get_number(input[pos:])
+        num_offset, num, is_num := calc_parse_number(input[pos:])
+
         // check sign prefix
         if nums_len == 0 && func == nil && strings.index_byte("+-", ch) >= 0 {
+            // fmt.println("it's op")
             is_num = false
         }
 
@@ -83,23 +86,15 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             // set offset
             offset = num_offset
 
-            // convert to f32
-            num, ok := strconv.parse_f32(input[pos:pos+offset])
-
             // DEBUG
             // fmt.println(input[pos:pos+offset])
-
-            if !ok {
-                print_error_prefix(input, &pos)
-                fmt.print("failed to parse this number.\n")
-                return 0, false
-            }
 
             // update numbers
             nums_len += 1
             nums[nums_len] = num
 
             if nums_len == 1 {
+                fmt.println(func)
                 // check valid infix operator
                 if func == nil {
                     print_error_prefix(input, &pos)
@@ -114,7 +109,6 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             }
 
             // save previous num
-            prev_num_pos = pos
             prev_num = num
         } else {
             // parse operator
@@ -155,22 +149,22 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
     return nums[0], true
 }
 
-calc_get_number :: proc(slice: string) -> (i: int, is_num: bool) {
-    if strings.index_byte("+-", slice[0]) >= 0 {
-        if len(slice) == 1 || strings.index_byte("0123456789", slice[1]) < 0 {
-            return 0, false
-        } else {
-            i += 1
-        }
-    }
+
+calc_parse_number :: proc(slice: string) -> (i: int, num: f32, is_num: bool) {
     for i < len(slice) {
-        if strings.index_byte("0123456789", slice[i]) < 0 {
-            return i, i > 0
-        }
         i += 1
+        num, is_num = strconv.parse_f32(slice[:i])
+        if !is_num {
+            if i == 1 {
+                return 0, 0, false
+            } else {
+                return i-1, num, true
+            }
+        }
     }
-    return i, true
+    return i, num, true
 }
+
 
 func_add :: proc(nums: [2]f32) -> f32 {
     return nums[0] + nums[1]

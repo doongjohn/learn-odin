@@ -3,7 +3,7 @@ package main
 // TODO:
 // - [x] multi-digit numbers
 // - [x] +- prefixed numbers
-// - [ ] floating point numbers
+// - [x] floating point numbers
 // - [ ] operator precedence
 // - [ ] grouping with parentheses
 // - [ ] custom math functions

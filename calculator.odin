@@ -74,9 +74,10 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
     calc_div :: proc(nums: [2]f32) -> f32 { return nums[0] / nums[1] }
     calc_pow :: proc(nums: [2]f32) -> f32 { return math.pow(nums[0], nums[1]) }
 
-    // parsed numbers
+    // number data
     nums_i := -1
     nums := [2]f32{0, 0}
+    prev_is_num := false
 
     // func precedence top
     func_top: proc(nums: [2]f32) -> f32
@@ -84,7 +85,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
     // func precedence 1
     func1_lhs: f32
     func1: proc(nums: [2]f32) -> f32
-    
+
     // func precedence 0
     func0_lhs: f32
     func0: proc(nums: [2]f32) -> f32
@@ -117,6 +118,8 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         }
 
         if is_num {
+            prev_is_num = true
+
             // set offset
             offset = num_offset
 
@@ -152,7 +155,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             }
 
             // check valid infix function
-            if nums_i < 0 {
+            if nums_i < 0 || !prev_is_num {
                 print_error_prefix(input, &pos)
                 fmt.print("There must be a number before the infix operator.\n")
                 return 0, false
@@ -192,11 +195,13 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             case '^':
                 func_top = calc_pow
             }
+
+            prev_is_num = false
         }
     }
 
     // check valid infix function
-    if func_top != nil || nums_i < 0 {
+    if func_top != nil || (func_top == nil && nums_i < 0) {
         print_error_prefix(input, &pos)
         fmt.print("There must be a number after the infix operator.\n")
         return 0, false

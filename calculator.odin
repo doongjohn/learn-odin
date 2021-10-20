@@ -77,7 +77,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
     parse_paren :: proc(str: string) -> (i: int, is_matched: bool) {
         // parse parentheses
-        // return: i         => index where parsing is ended
+        // return: i          => index where parsing is ended
         // return: is_matched => is parentheses match
 
         str_len := len(str)

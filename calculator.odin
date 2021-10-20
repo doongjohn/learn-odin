@@ -32,8 +32,6 @@ main :: proc() {
             return
         }
 
-        fmt.printf("[input]: \"{}\"\n", input)
-
         result, ok := calculate(input)
         if ok {
             fmt.printf("[result]: {}\n", result)
@@ -138,7 +136,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
                 // check valid infix operator
                 if func_top == nil {
                     print_error_prefix(input, &pos)
-                    fmt.printf("can not find any infix operator before \"{}\".\n", input[pos:pos+offset])
+                    fmt.printf("Expected infix operator before the number \"{}\".\n", input[pos:pos+offset])
                     return 0, false
                 }
 
@@ -157,7 +155,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             // check valid infix function
             if nums_i < 0 || !prev_is_num {
                 print_error_prefix(input, &pos)
-                fmt.print("There must be a number before the infix operator.\n")
+                fmt.print("Expected number before the infix operator.\n")
                 return 0, false
             }
 
@@ -202,8 +200,9 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
     // check valid infix function
     if func_top != nil || (func_top == nil && nums_i < 0) {
-        print_error_prefix(input, &pos)
-        fmt.print("There must be a number after the infix operator.\n")
+        pos_high := len(input) - 1
+        print_error_prefix(input, &pos_high)
+        fmt.print("Expected number after the infix operator.\n")
         return 0, false
     }
 

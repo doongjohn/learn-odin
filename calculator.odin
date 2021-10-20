@@ -6,7 +6,6 @@ package main
 // - [x] floating point numbers
 // - [x] operator precedence
 // - [x] grouping with parentheses
-// - [ ] predefined variables
 // - [ ] custom math functions
 
 // References:
@@ -291,6 +290,12 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
             prev_was_num = false
         }
+    }
+
+    // calculate top precedence operator
+    if func_top != nil && nums_i == 1 {
+        nums[0] = func_top(nums)
+        func_top = nil
     }
 
     // check valid infix function

@@ -6,6 +6,7 @@ package main
 // - [x] floating point numbers
 // - [x] operator precedence
 // - [x] grouping with parentheses
+// - [ ] predefined variables
 // - [ ] custom math functions
 
 // References:

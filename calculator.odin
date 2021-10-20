@@ -5,7 +5,7 @@ package main
 // - [x] +- prefixed numbers
 // - [x] floating point numbers
 // - [x] operator precedence
-// - [ ] grouping with parentheses
+// - [x] grouping with parentheses
 // - [ ] custom math functions
 
 // References:
@@ -122,10 +122,13 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
     calc_div :: proc(nums: [2]f32) -> f32 { return nums[0] / nums[1] }
     calc_pow :: proc(nums: [2]f32) -> f32 { return math.pow(nums[0], nums[1]) }
 
+    // parentheses data
+    paren_sign: f32 = 1
+
     // number data
     nums_i := -1
     nums := [2]f32{0, 0}
-    prev_is_num := false
+    prev_was_num := false
 
     // func precedence top
     func_top: proc(nums: [2]f32) -> f32
@@ -157,8 +160,22 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         // ignore space
         if ch == ' ' { continue }
 
+        // parse +- prefixed parentheses
+        paren_sign = 1
+        if !prev_was_num && pos < len(input) - 1 && strings.index_byte("+-", ch) >= 0 && input[pos+1] == '(' {
+            pos += 1
+            if ch == '-' { paren_sign = -1 }
+            ch = input[pos]
+        }
+
         // parse parentheses
         if ch == '(' {
+            if prev_was_num {
+                print_error_prefix(input, &pos)
+                fmt.print("Expected infix operator before the parentheses.\n")
+                return 0, false
+            }
+
             paren_offset, is_matched := parse_paren(input[pos:])
             if is_matched {
                 offset = paren_offset
@@ -170,8 +187,8 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
                 if paren_ok {
                     // update numbers
                     nums_i += 1
-                    nums[nums_i] = paren_result
-                    prev_is_num = true
+                    nums[nums_i] = paren_sign * paren_result
+                    prev_was_num = true
                     continue
                 } else {
                     print_error_prefix(input, &pos)
@@ -194,8 +211,6 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         }
 
         if is_num {
-            prev_is_num = true
-
             // set offset
             offset = num_offset
 
@@ -205,6 +220,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             // update numbers
             nums_i += 1
             nums[nums_i] = num
+            prev_was_num = true
 
             // if there are 2 numbers
             if nums_i == 1 {
@@ -231,7 +247,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
             }
 
             // check valid infix function
-            if nums_i < 0 || !prev_is_num {
+            if nums_i < 0 || !prev_was_num {
                 print_error_prefix(input, &pos)
                 fmt.print("Expected number before the infix operator.\n")
                 return 0, false
@@ -272,7 +288,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
                 func_top = calc_pow
             }
 
-            prev_is_num = false
+            prev_was_num = false
         }
     }
 

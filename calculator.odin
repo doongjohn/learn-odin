@@ -40,20 +40,29 @@ main :: proc() {
 }
 
 calculate :: proc(input: string) -> (result: f32, ok: bool) {
-    
     print_error_prefix :: proc(input: string, pos: ^int) {
         fmt.printf("[error]: {}\n", input)
         for _ in 0 .. pos^ + len("[error]:") { fmt.print(" ") }
         fmt.print("└> ")
     }
 
-    parse_number :: proc(slice: string) -> (i: int, num: f32, is_num: bool) {
-        if strings.index_byte("+-", slice[0]) >= 0 && (len(slice) == 1 || strings.index_byte(".0123456789", slice[1]) < 0) {
+    parse_number :: proc(str: string) -> (i: int, num: f32, is_num: bool) {
+        // parse string as f32 number
+        // NOTE: +- prefix is part of the number
+        // return: i      => index where parsing is ended
+        // return: num    => parsed number
+        // return: is_num => is an input successfully parsed as f32
+
+        str_len := len(str)
+
+        // check +- prefix
+        if strings.index_byte("+-", str[0]) >= 0 && (str_len == 1 || strings.index_byte(".0123456789", str[1]) < 0) {
             return 0, 0, false
         }
-        for i < len(slice) {
+        
+        for i < str_len {
             i += 1
-            num, is_num = strconv.parse_f32(slice[:i])
+            num, is_num = strconv.parse_f32(str[:i]) // can be optimized
             if !is_num {
                 if i == 1 {
                     return 0, 0, false
@@ -62,7 +71,48 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
                 }
             }
         }
+
         return i, num, true
+    }
+
+    parse_paren :: proc(str: string) -> (i: int, is_matched: bool) {
+        // parse parentheses
+        // return: i         => index where parsing is ended
+        // return: is_matched => is parentheses match
+
+        str_len := len(str)
+        depth: uint = 1
+
+        if str_len < 2 || str[0] != '(' {
+            return 0, false
+        }
+
+        for i < str_len - 1 {
+            i += 1
+
+            if depth == 0 {
+                return i, true
+            }
+
+            if str[i] == '(' {
+                depth += 1
+                continue
+            }
+
+            if str[i] == ')' {
+                depth -= 1
+                if depth < 0 {
+                    return i, false
+                }
+                continue
+            }
+        }
+
+        if depth == 0 {
+            return i + 1, true
+        } else {
+            return i + 1, false
+        }
     }
 
     // calculation functions
@@ -106,6 +156,34 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         
         // ignore space
         if ch == ' ' { continue }
+
+        // parse parentheses
+        if ch == '(' {
+            paren_offset, is_matched := parse_paren(input[pos:])
+            if is_matched {
+                offset = paren_offset
+                
+                // DEBUG
+                // fmt.println(input[pos+1:pos+paren_offset-1])
+                
+                paren_result, paren_ok := calculate(input[pos+1:pos+paren_offset-1])
+                if paren_ok {
+                    // update numbers
+                    nums_i += 1
+                    nums[nums_i] = paren_result
+                    prev_is_num = true
+                    continue
+                } else {
+                    print_error_prefix(input, &pos)
+                    fmt.print("Expression does not return a number.\n")
+                    return 0, false
+                }
+            } else {
+                print_error_prefix(input, &pos)
+                fmt.print("Unmatched parentheses.\n")
+                return 0, false
+            }
+        }
 
         // parse number
         num_offset, num, is_num := parse_number(input[pos:])

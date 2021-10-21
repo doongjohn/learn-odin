@@ -36,6 +36,7 @@ main :: proc() {
         if ok {
             fmt.printf("[result]: {}\n", result)
         }
+        fmt.println()
     }
 }
 
@@ -81,7 +82,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         // return: is_matched => is parentheses match
 
         str_len := len(str)
-        depth: uint = 1
+        opened: uint = 1
 
         if str_len < 2 || str[0] != '(' {
             return 0, false
@@ -90,29 +91,28 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         for i < str_len - 1 {
             i += 1
 
-            if depth == 0 {
+            if opened == 0 {
                 return i, true
             }
 
             if str[i] == '(' {
-                depth += 1
+                opened += 1
                 continue
             }
 
             if str[i] == ')' {
-                depth -= 1
-                if depth < 0 {
+                opened -= 1
+                if opened < 0 {
                     return i, false
                 }
                 continue
             }
         }
 
-        if depth == 0 {
+        if opened == 0 {
             return i + 1, true
-        } else {
-            return i + 1, false
         }
+        return i + 1, false
     }
 
     // calculation functions
@@ -141,9 +141,15 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
     func0_lhs: f32
     func0: proc(nums: [2]f32) -> f32
 
-    // loop
     pos, offset := 0, 0
     ch: u8
+    if len(input) == 0 {
+        print_error_prefix(input, &pos)
+        fmt.print("No input.\n")
+        return 0, false
+    }
+
+    // loop
     for pos < len(input) {
         // increase position
         defer {

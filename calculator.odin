@@ -371,11 +371,14 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
             }
 
             // clear nums
-            if strings.index_byte("+-*/", ch) >= 0 {
+            if strings.index_byte("^", ch) < 0 {
                 nums_i = -1
             }
 
             // set calculation function
+            // top => ^
+            // 1   => * /
+            // 0   => + -
             switch ch {
             case '+':
                 func0_lhs = nums[0]

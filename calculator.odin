@@ -23,7 +23,7 @@ import "core:unicode/utf8"
 
 main :: proc() {
     for {
-        fmt.print("calculator > ")
+        fmt.print("calculator >>> ")
 
         input_builder := read_from_stdin()
         defer strings.destroy_builder(&input_builder)

@@ -83,6 +83,11 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         case "-pi":
             return i, -math.PI, true
         
+        case "tau", "+tau":
+            return i, math.TAU, true
+        case "-tau":
+            return i, -math.TAU, true
+
         case "e", "+e":
             return i, math.E, true
         case "-e":

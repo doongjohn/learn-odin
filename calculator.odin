@@ -194,13 +194,12 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
     // input data
     input_len := len(input)
     input_high := input_len - 1
-
-    // calculation functions
-    calc_add :: proc(nums: [2]f64) -> f64 { return nums[0] + nums[1] }
-    calc_sub :: proc(nums: [2]f64) -> f64 { return nums[0] - nums[1] }
-    calc_mul :: proc(nums: [2]f64) -> f64 { return nums[0] * nums[1] }
-    calc_div :: proc(nums: [2]f64) -> f64 { return nums[0] / nums[1] }
-    calc_pow :: proc(nums: [2]f64) -> f64 { return math.pow(nums[0], nums[1]) }
+    pos, offset, ch := 0, 0, u8(0)
+    if input_len == 0 {
+        print_error_prefix(input, &pos)
+        fmt.print("No input.\n")
+        return 0, false
+    }
 
     // parentheses data
     paren_sign: f64 = 1
@@ -209,6 +208,13 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
     nums_i := -1
     nums := [2]f64{0, 0}
     prev_was_num := false
+
+    // calculation functions
+    calc_add :: proc(nums: [2]f64) -> f64 { return nums[0] + nums[1] }
+    calc_sub :: proc(nums: [2]f64) -> f64 { return nums[0] - nums[1] }
+    calc_mul :: proc(nums: [2]f64) -> f64 { return nums[0] * nums[1] }
+    calc_div :: proc(nums: [2]f64) -> f64 { return nums[0] / nums[1] }
+    calc_pow :: proc(nums: [2]f64) -> f64 { return math.pow(nums[0], nums[1]) }
 
     // func precedence top
     func_top: proc(nums: [2]f64) -> f64
@@ -220,14 +226,6 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
     // func precedence 0
     func0_lhs: f64
     func0: proc(nums: [2]f64) -> f64
-
-    pos, offset := 0, 0
-    ch: u8
-    if len(input) == 0 {
-        print_error_prefix(input, &pos)
-        fmt.print("No input.\n")
-        return 0, false
-    }
 
     // loop
     for pos < len(input) {

@@ -6,6 +6,7 @@ package main
 // - [x] floating point numbers
 // - [x] operator precedence
 // - [x] grouping with parentheses
+// - [x] predefined constants
 // - [ ] custom math functions
 
 // References:
@@ -45,6 +46,49 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         fmt.printf("[error]: {}\n", input)
         for _ in 0 .. pos^ + len("[error]:") { fmt.print(" ") }
         fmt.print("└> ")
+    }
+
+    parse_const :: proc(str: string, sign: bool) -> (i: int, num: f32, is_valid: bool) {
+        // parse predefined constants
+        // return: i      => index where parsing is ended   
+        // return: num    => value of the constant
+        // return: is_valid => is an input successfully parsed as constant
+
+        str_len := len(str)
+
+        if str_len == 0 {
+            return 0, 0, false
+        }
+
+        if sign && strings.index_byte(".0123456789*/^", str[0]) >= 0 {
+            return 0, 0, false
+        }
+
+        if !sign && strings.index_byte(".0123456789+-*/^", str[0]) >= 0 {
+            return 0, 0, false
+        }
+
+        for i < str_len - 1 {
+            i += 1
+            if strings.index_byte("+-*/^ ", str[i]) >= 0 {
+                i -= 1
+                break
+            }
+        }
+        i += 1
+
+        switch str[:i] {
+        case "pi", "+pi":
+            return i, 3.141592, true
+        case "-pi":
+            return i, -3.141592, true
+        
+        case "e", "+e":
+            return i, 2.71828182846, true
+        case "-e":
+            return i, -2.71828182846, true
+        }
+        return 0, 0, false
     }
 
     parse_number :: proc(str: string) -> (i: int, num: f32, is_num: bool) {
@@ -206,6 +250,25 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
                 fmt.print("Unmatched parentheses.\n")
                 return 0, false
             }
+        }
+        
+
+        // parse constant
+        const_offset, const_num, is_const := parse_const(input[pos:], !prev_was_num)
+
+        if is_const {
+            offset = const_offset
+            // check infix operator
+            if prev_was_num {
+                print_error_prefix(input, &pos)
+                fmt.printf("Expected infix operator before the number \"{}\".\n", input[pos:pos+offset])
+                return 0, false
+            }
+            // update numbers
+            nums_i += 1
+            nums[nums_i] = const_num
+            prev_was_num = true
+            continue
         }
 
         // parse number

@@ -35,7 +35,7 @@ main :: proc() {
 
         result, ok := calculate(input)
         if ok {
-            fmt.printf("[result]: {}\n", result)
+            fmt.printf("[result]: {:.6f}\n", result)
         }
         fmt.println()
     }

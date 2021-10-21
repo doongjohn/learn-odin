@@ -96,7 +96,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         return 0, 0, false
     }
 
-    parse_number :: proc(str: string) -> (i: int, num: f32, is_num: bool) {
+    parse_number :: proc(str: string, sign: bool) -> (i: int, num: f32, is_num: bool) {
         // parse string as f32 number
         // NOTE: +- prefix is part of the number
         // return: i      => index where parsing is ended
@@ -105,8 +105,12 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
         str_len := len(str)
 
+        if !sign && strings.index_byte("+-", str[0]) >= 0 {
+            return 0, 0, false
+        }
+
         // check +- prefix
-        if strings.index_byte("+-", str[0]) >= 0 && (str_len == 1 || strings.index_byte(".0123456789", str[1]) < 0) {
+        if sign && strings.index_byte("+-", str[0]) >= 0 && (str_len == 1 || strings.index_byte(".0123456789", str[1]) < 0) {
             return 0, 0, false
         }
         
@@ -277,12 +281,7 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
         }
 
         // parse number
-        num_offset, num, is_num := parse_number(input[pos:])
-
-        // check +- operator
-        if nums_i == 0 && func_top == nil && strings.index_byte("+-", ch) >= 0 {
-            is_num = false
-        }
+        num_offset, num, is_num := parse_number(input[pos:], !prev_was_num)
 
         if is_num {
             // set offset

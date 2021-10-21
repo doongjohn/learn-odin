@@ -79,14 +79,14 @@ calculate :: proc(input: string) -> (result: f32, ok: bool) {
 
         switch str[:i] {
         case "pi", "+pi":
-            return i, 3.141592, true
+            return i, math.PI, true
         case "-pi":
-            return i, -3.141592, true
+            return i, -math.PI, true
         
         case "e", "+e":
-            return i, 2.71828182846, true
+            return i, math.E, true
         case "-e":
-            return i, -2.71828182846, true
+            return i, -math.E, true
         }
         return 0, 0, false
     }

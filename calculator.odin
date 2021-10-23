@@ -71,23 +71,15 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
         fmt.print("└> ")
     }
 
-    parse_const :: proc(str: string, sign: bool) -> (i: int, num: f64, is_valid: bool) {
+    parse_const :: proc(str: string) -> (i: int, num: f64, ok: bool) {
         // parse predefined constants
         // return: i      => index where parsing is ended   
         // return: num    => value of the constant
-        // return: is_valid => is an input successfully parsed as constant
+        // return: ok     => is an input successfully parsed as constant
 
         str_len := len(str)
 
-        if str_len == 0 {
-            return 0, 0, false
-        }
-
-        if sign && strings.index_byte(".0123456789*/^", str[0]) >= 0 {
-            return 0, 0, false
-        }
-
-        if !sign && strings.index_byte(".0123456789+-*/^", str[0]) >= 0 {
+        if str_len == 0 || strings.index_byte(".0123456789*/^", str[0]) >= 0 {
             return 0, 0, false
         }
 
@@ -101,46 +93,35 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
         i += 1
 
         switch str[:i] {
-        case "pi", "+pi":
-            return i, math.PI, true
-        case "-pi":
-            return i, -math.PI, true
-        
-        case "tau", "+tau":
-            return i, math.TAU, true
-        case "-tau":
-            return i, -math.TAU, true
+        case "pi", "+pi"   : return i, +math.PI, true
+        case "-pi"         : return i, -math.PI, true
 
-        case "e", "+e":
-            return i, math.E, true
-        case "-e":
-            return i, -math.E, true
+        case "tau", "+tau" : return i, +math.TAU, true
+        case "-tau"        : return i, -math.TAU, true
+        
+        case "e", "+e"     : return i, +math.E, true
+        case "-e"          : return i, -math.E, true
         }
         return 0, 0, false
     }
 
-    parse_number :: proc(str: string, sign: bool) -> (i: int, num: f64, is_num: bool) {
+    parse_number :: proc(str: string) -> (i: int, num: f64, ok: bool) {
         // parse string as f64 number
         // NOTE: +- prefix is part of the number
         // return: i      => index where parsing is ended
         // return: num    => parsed number
-        // return: is_num => is an input successfully parsed as f64
+        // return: ok     => is an input successfully parsed as f64
 
         str_len := len(str)
-
-        if !sign && strings.index_byte("+-", str[0]) >= 0 {
-            return 0, 0, false
-        }
-
-        // check +- prefix
-        if sign && strings.index_byte("+-", str[0]) >= 0 && (str_len == 1 || strings.index_byte(".0123456789", str[1]) < 0) {
+        
+        if strings.index_byte("+-", str[0]) >= 0 && (str_len == 1 || strings.index_byte(".0123456789", str[1]) < 0) {
             return 0, 0, false
         }
         
         for i < str_len {
             i += 1
-            num, is_num = strconv.parse_f64(str[:i]) // can be optimized
-            if !is_num {
+            num, ok = strconv.parse_f64(str[:i]) // can be optimized
+            if !ok {
                 if i == 1 {
                     return 0, 0, false
                 } else {
@@ -152,39 +133,20 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
         return i, num, true
     }
 
-    parse_paren :: proc(str: string) -> (i: int, sign: f64, is_matched: bool) {
+    parse_paren :: proc(str: string) -> (i: int, ok: bool) {
         // parse parentheses
         // return: i          => index where parsing is ended
-        // return: sign       => sign of this expression
-        // return: is_matched => is parentheses match
+        // return: ok         => is parentheses match
 
         str_len := len(str)
         opened: uint = 1
-        sign = 1
 
-        if str_len < 2 {
-            fmt.println(str_len)
-            return 0, 0, false
-        }
-
-        if strings.index_byte("+-", str[0]) >= 0 {
-            i += 1
-            if str[1] != '(' {
-                return 0, 0, false
-            }
-            if str[0] == '-' {
-                sign = -1
-            }
-        } else if str[0] != '(' {
-            return 0, 0, false
+        if str_len < 2 || str[0] != '(' {
+            return 0, false
         }
 
         for i < str_len - 1 {
             i += 1
-
-            if opened == 0 {
-                return i, sign, true
-            }
 
             if str[i] == '(' {
                 opened += 1
@@ -194,30 +156,25 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
             if str[i] == ')' {
                 opened -= 1
                 if opened < 0 {
-                    return i, 0, false
+                    return i, false
                 }
                 continue
             }
         }
 
-        if opened == 0 {
-            return i + 1, sign, true
-        }
-        return i + 1, 0, false
+        return i + 1, opened == 0
     }
 
     // input data
     input_len := len(input)
     input_high := input_len - 1
-    pos, offset, ch := 0, 0, u8(0)
+    pos, offset := 0, 0
+    ch: u8 = 0
     if input_len == 0 {
         print_error_prefix(input, &pos)
-        fmt.print("No input.\n")
+        fmt.print("Empty expression.\n")
         return 0, false
     }
-
-    // parentheses data
-    paren_sign: f64 = 1
 
     // number data
     nums_i := -1
@@ -243,128 +200,25 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
     func0: proc(nums: [2]f64) -> f64
 
     // loop
-    for pos < len(input) {
+    for pos < input_len {
         // increase position
         defer {
             pos += offset == 0 ? 1 : offset
             offset = 0
         }
 
-        // current byte
+        // current character (byte)
         ch = input[pos]
 
-        // DEBUG
-        // fmt.printf("[{}], char: {}\n", pos, input[pos:pos+1])
-        
-        // ignore space
+        // ignore empty space
         if ch == ' ' { continue }
 
-        // parse parentheses
-        {
-            if pos < input_high {
-                prefixed := input[pos:pos+2] == "-(" || input[pos:pos+2] == "+("
-                if ch == '(' || prefixed {
-                    if prev_was_num {
-                        print_error_prefix(input, &pos)
-                        fmt.print("Expected infix operator before the expression.\n")
-                        return 0, false
-                    }
-
-                    parse_len, sign, is_matched := parse_paren(input[pos:])
-                    if !is_matched {
-                        print_error_prefix(input, &pos)
-                        fmt.print("Unmatched parentheses.\n")
-                        return 0, false
-                    }
-
-                    offset = parse_len
-                    
-                    // DEBUG
-                    // fmt.println(input[input[pos+1+(prefixed ? 1 : 0):pos+parse_len-1])
-                    
-                    exper_result, exper_ok := calculate(input[pos+1+(prefixed ? 1 : 0):pos+parse_len-1])
-                    if !exper_ok {
-                        print_error_prefix(input, &pos)
-                        fmt.print("Expression does not return a number.\n")
-                        return 0, false
-                    }
-
-                    // update numbers
-                    nums_i += 1
-                    nums[nums_i] = sign * exper_result
-                    prev_was_num = true
-                    continue
-                }
-            }
-        }
-
-        // parse constant
-        {
-            parse_len, parse_res, ok := parse_const(input[pos:], !prev_was_num);
-            if ok {
-                offset = parse_len
-
-                // check infix operator
-                if prev_was_num {
-                    print_error_prefix(input, &pos)
-                    fmt.printf("Expected infix operator before the number \"{}\".\n", input[pos:pos+offset])
-                    return 0, false
-                }
-                
-                // add number
-                nums_i += 1
-                nums[nums_i] = parse_res
-                prev_was_num = true
-                continue
-            }
-        }
-        
-        // parse number
-        {
-            parse_len, parse_res, ok := parse_number(input[pos:], !prev_was_num)
-            if ok {
-                offset = parse_len
-
-                // DEBUG
-                // fmt.println(input[pos:pos+offset])
-
-                // add number
-                nums_i += 1
-                nums[nums_i] = parse_res
-                prev_was_num = true
-
-                // if there are 2 numbers
-                if nums_i == 1 {
-                    // check valid infix operator
-                    if func_top == nil {
-                        print_error_prefix(input, &pos)
-                        fmt.printf("Expected infix operator before the number \"{}\".\n", input[pos:pos+offset])
-                        return 0, false
-                    }
-
-                    nums_i = 0
-
-                    // calculate top precedence operator
-                    nums[0] = func_top(nums)
-                    func_top = nil
-                }
-                continue
-            }
-        }
-
         // parse operator
-        {
+        if prev_was_num {
             // check valid operator
             if (strings.index_byte("+-*/^", ch) < 0) {
                 print_error_prefix(input, &pos)
-                fmt.printf("\"{}\" is not a valid operator.\n", input[pos:pos+1])
-                return 0, false
-            }
-
-            // check valid infix function
-            if nums_i < 0 || !prev_was_num {
-                print_error_prefix(input, &pos)
-                fmt.print("Expected number before the infix operator.\n")
+                fmt.printf("Expected operator. (\"{}\" is not a valid operator.)\n", input[pos:pos+1])
                 return 0, false
             }
 
@@ -407,28 +261,108 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
             case '^':
                 func_top = calc_pow
             }
+            continue
         }
-    }
 
-    // final calculation
-    {
-        // calculate top precedence operator
-        if func_top != nil {
-            if nums_i == 1 {
-                nums[0] = func_top(nums)
-            } else {
-                print_error_prefix(input, &input_high)
-                fmt.print("Expected number after the infix operator.\n")
-                return 0, false
+        // parse parentheses
+        {
+            prefixed := pos < input_high && (input[pos:pos+2] == "-(" || input[pos:pos+2] == "+(")
+            if ch == '(' || prefixed {
+                sign: f64 = ch == '-' ? -1 : 1
+                exper_start := pos + (prefixed ? 1 : 0)
+
+                parse_len, is_matched := parse_paren(input[exper_start:])
+                if !is_matched {
+                    print_error_prefix(input, &pos)
+                    fmt.print("Unmatched parentheses.\n")
+                    return 0, false
+                }
+
+                // set offset
+                offset = parse_len + (prefixed ? 1 : 0)
+
+                // extract expression
+                exper_str := input[exper_start+1:exper_start+parse_len-1]
+
+                // calculate expression
+                num, ok := calculate(exper_str)
+                if !ok {
+                    print_error_prefix(input, &pos)
+                    fmt.print("Invalid expression.\n")
+                    return 0, false
+                }
+
+                // update numbers
+                nums_i += 1
+                nums[nums_i] = sign * num
+                prev_was_num = true
+                continue
             }
         }
 
-        // calculate precedence 1
-        if func1 != nil { nums[0] = func1({func1_lhs, nums[0]}) }
+        // parse constant
+        {
+            parse_len, num, ok := parse_const(input[pos:]);
+            if ok {
+                // set offset
+                offset = parse_len
+                
+                // add number
+                nums_i += 1
+                nums[nums_i] = num
+                prev_was_num = true
+                continue
+            }
+        }
+        
+        // parse number
+        {
+            parse_len, num, ok := parse_number(input[pos:])
+            if ok {
+                // set offset
+                offset = parse_len
 
-        // calculate precedence 0
-        if func0 != nil { nums[0] = func0({func0_lhs, nums[0]}) }
+                // add number
+                nums_i += 1
+                nums[nums_i] = num
+                prev_was_num = true
+
+                // if there are 2 numbers
+                if nums_i == 1 {
+                    // set nums index to first
+                    nums_i = 0
+
+                    // calculate top precedence operator
+                    if func_top == nil {
+                        nums[0] = func_top(nums)
+                        func_top = nil
+                    } else {
+                        print_error_prefix(input, &pos)
+                        fmt.println("Unreachable error!")
+                        return 0, false
+                    }
+                }
+                continue
+            }
+        }
+
+        // handle invalid character
+        print_error_prefix(input, &pos)
+        fmt.print("Expected number.\n")
+        return 0, false
     }
+
+    // check valid infix operator
+    if !prev_was_num {
+        print_error_prefix(input, &input_high)
+        fmt.print("Expected number after the infix operator.\n")
+        return 0, false
+    }
+
+    // final calculation
+    if func_top != nil { nums[0] = func_top(nums) }              // calculate top precedence
+    if func1 != nil    { nums[0] = func1({func1_lhs, nums[0]}) } // calculate precedence 1
+    if func0 != nil    { nums[0] = func0({func0_lhs, nums[0]}) } // calculate precedence 0
 
     // return calculation result
     return nums[0], true

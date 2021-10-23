@@ -44,30 +44,30 @@ main :: proc() {
 }
 
 test_calculate :: proc(input: string, expected_res: f64) {
-    fmt.println(input)
+    fmt.printf("input      >>> {}\n", input)
     result, ok := calculate(input)
     if ok {
-        fmt.printf("[result]: {:.6f}\n", result)
+        fmt.printf("result     >>> {:.6f}\n", result)
         if result == expected_res {
-            fmt.println("[test]: passed\n")
+            fmt.println("test       >>> passed\n")
             return
         }
     }
-    fmt.println("[test]: failed\n")
+    fmt.println("test       >>> failed\n")
 }
 
 print_calculate :: proc(input: string) {
     result, ok := calculate(input)
     if ok {
-        fmt.printf("[result]: {:.6f}\n", result)
+        fmt.printf("result     >>> {:.6f}\n", result)
     }
     fmt.println()
 }
 
 calculate :: proc(input: string) -> (result: f64, ok: bool) {
     print_error_prefix :: proc(input: string, pos: ^int) {
-        fmt.printf("[error]: {}\n", input)
-        for _ in 0 .. pos^ + len("[error]:") { fmt.print(" ") }
+        fmt.print("error      >>>")
+        for _ in 0 .. pos^ { fmt.print(" ") }
         fmt.print("└> ")
     }
 

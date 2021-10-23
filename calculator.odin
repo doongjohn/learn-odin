@@ -333,7 +333,7 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
                     nums_i = 0
 
                     // calculate top precedence operator
-                    if func_top == nil {
+                    if func_top != nil {
                         nums[0] = func_top(nums)
                         func_top = nil
                     } else {

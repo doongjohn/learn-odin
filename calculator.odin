@@ -346,7 +346,7 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
             }
         }
 
-        // handle invalid character
+        // invalid number
         print_error_prefix(input, &pos)
         fmt.print("Expected number.\n")
         return 0, false

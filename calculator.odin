@@ -152,23 +152,38 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
         return i, num, true
     }
 
-    parse_paren :: proc(str: string) -> (i: int, is_matched: bool) {
+    parse_paren :: proc(str: string) -> (i: int, sign: f64, is_matched: bool) {
         // parse parentheses
         // return: i          => index where parsing is ended
+        // return: sign       => sign of this expression
         // return: is_matched => is parentheses match
 
         str_len := len(str)
         opened: uint = 1
+        sign = 1
 
-        if str_len < 2 || str[0] != '(' {
-            return 0, false
+        if str_len < 2 {
+            fmt.println(str_len)
+            return 0, 0, false
+        }
+
+        if strings.index_byte("+-", str[0]) >= 0 {
+            i += 1
+            if str[1] != '(' {
+                return 0, 0, false
+            }
+            if str[0] == '-' {
+                sign = -1
+            }
+        } else if str[0] != '(' {
+            return 0, 0, false
         }
 
         for i < str_len - 1 {
             i += 1
 
             if opened == 0 {
-                return i, true
+                return i, sign, true
             }
 
             if str[i] == '(' {
@@ -179,16 +194,16 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
             if str[i] == ')' {
                 opened -= 1
                 if opened < 0 {
-                    return i, false
+                    return i, 0, false
                 }
                 continue
             }
         }
 
         if opened == 0 {
-            return i + 1, true
+            return i + 1, sign, true
         }
-        return i + 1, false
+        return i + 1, 0, false
     }
 
     // input data
@@ -246,49 +261,46 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
 
         // parse parentheses
         {
-            paren_sign = 1
-            if !prev_was_num && pos < input_high && strings.index_byte("+-", ch) >= 0 && input[pos+1] == '(' {
-                pos += 1
-                if ch == '-' { paren_sign = -1 }
-                ch = input[pos]
-            }
-            if ch == '(' {
-                if prev_was_num {
-                    print_error_prefix(input, &pos)
-                    fmt.print("Expected infix operator before the expression.\n")
-                    return 0, false
-                }
+            if pos < input_high {
+                prefixed := input[pos:pos+2] == "-(" || input[pos:pos+2] == "+("
+                if ch == '(' || prefixed {
+                    if prev_was_num {
+                        print_error_prefix(input, &pos)
+                        fmt.print("Expected infix operator before the expression.\n")
+                        return 0, false
+                    }
 
-                parse_len, is_matched := parse_paren(input[pos:])
-                if is_matched {
+                    parse_len, sign, is_matched := parse_paren(input[pos:])
+                    if !is_matched {
+                        print_error_prefix(input, &pos)
+                        fmt.print("Unmatched parentheses.\n")
+                        return 0, false
+                    }
+
                     offset = parse_len
                     
                     // DEBUG
-                    // fmt.println(input[pos+1:pos+parse_len-1])
+                    // fmt.println(input[input[pos+1+(prefixed ? 1 : 0):pos+parse_len-1])
                     
-                    paren_result, paren_ok := calculate(input[pos+1:pos+parse_len-1])
-                    if paren_ok {
-                        // update numbers
-                        nums_i += 1
-                        nums[nums_i] = paren_sign * paren_result
-                        prev_was_num = true
-                        continue
-                    } else {
+                    exper_result, exper_ok := calculate(input[pos+1+(prefixed ? 1 : 0):pos+parse_len-1])
+                    if !exper_ok {
                         print_error_prefix(input, &pos)
                         fmt.print("Expression does not return a number.\n")
                         return 0, false
                     }
-                } else {
-                    print_error_prefix(input, &pos)
-                    fmt.print("Unmatched parentheses.\n")
-                    return 0, false
+
+                    // update numbers
+                    nums_i += 1
+                    nums[nums_i] = sign * exper_result
+                    prev_was_num = true
+                    continue
                 }
             }
         }
 
         // parse constant
         {
-            parse_len, parse_res, ok := parse_const(input[pos:], !prev_was_num)
+            parse_len, parse_res, ok := parse_const(input[pos:], !prev_was_num);
             if ok {
                 offset = parse_len
 

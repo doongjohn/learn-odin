@@ -8,6 +8,7 @@ package main
 // - [x] grouping with parentheses
 // - [x] predefined constants
 // - [ ] custom math functions
+// - [ ] allow unicode character
 
 // References:
 // https://en.wikipedia.org/wiki/Shunting-yard_algorithm
@@ -23,9 +24,9 @@ import "core:unicode/utf8"
 
 main :: proc() {
     for {
-        fmt.print("calculator >>> ")
+        fmt.print(">>> ")
 
-        input_builder := read_from_stdin()
+        input_builder := stdin_readline()
         defer strings.destroy_builder(&input_builder)
 
         input := strings.trim_space(strings.to_string(input_builder))
@@ -33,10 +34,11 @@ main :: proc() {
         case "exit", "quit":
             return
         case "test":
-            test_calculate("10", 10)
-            test_calculate("1 + 2", 3)
-            test_calculate("2 * (2 + 10)", 24)
-            test_calculate("10 * pi * 2", 10 * math.PI * 2)
+            test_calculate("10",           10)
+            test_calculate("1 + 2",        1 + 2)
+            test_calculate("2 * (2 + 10)", 2 * (2 + 10))
+            test_calculate("2 + -(2 / 2)", 2 + -(2 / 2))
+            test_calculate("10 * pi * 2",  10 * math.PI * 2)
         case:
             print_calculate(input)
         }
@@ -44,38 +46,42 @@ main :: proc() {
 }
 
 test_calculate :: proc(input: string, expected_res: f64) {
-    fmt.printf("input      >>> {}\n", input)
+    fmt.printf(">>> {}\n", input)
     result, ok := calculate(input)
     if ok {
-        fmt.printf("result     >>> {:.6f}\n", result)
+        fmt.printf("  = {:.6f}\n", result)
         if result == expected_res {
-            fmt.println("test       >>> passed\n")
-            return
+            fmt.println("🟢  passed\n")
+        } else {
+            fmt.printf("🔴  failed (expected: {:.6f})\n\n", expected_res)
         }
+    } else {
+        fmt.println("❗  expression failed\n")
     }
-    fmt.println("test       >>> failed\n")
 }
 
 print_calculate :: proc(input: string) {
     result, ok := calculate(input)
     if ok {
-        fmt.printf("result     >>> {:.6f}\n", result)
+        fmt.printf("  = {:.6f}\n", result)
     }
     fmt.println()
 }
 
 calculate :: proc(input: string) -> (result: f64, ok: bool) {
     print_error_prefix :: proc(input: string, pos: ^int) {
-        fmt.print("error      >>>")
-        for _ in 0 .. pos^ { fmt.print(" ") }
-        fmt.print("└> ")
+        fmt.print("err:")
+        for _ in 1 .. pos^ { fmt.print(" ") }
+        fmt.print("└─> ")
     }
 
     parse_const :: proc(str: string) -> (i: int, num: f64, ok: bool) {
         // parse predefined constants
-        // return: i      => index where parsing is ended   
-        // return: num    => value of the constant
-        // return: ok     => is an input successfully parsed as constant
+        // return: (
+        //     i   => index where parsing is ended
+        //     num => value of the constant
+        //     ok  => is an input successfully parsed as constant
+        // )
 
         str_len := len(str)
 
@@ -98,7 +104,7 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
 
         case "tau", "+tau" : return i, +math.TAU, true
         case "-tau"        : return i, -math.TAU, true
-        
+
         case "e", "+e"     : return i, +math.E, true
         case "-e"          : return i, -math.E, true
         }
@@ -107,17 +113,19 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
 
     parse_number :: proc(str: string) -> (i: int, num: f64, ok: bool) {
         // parse string as f64 number
-        // NOTE: +- prefix is part of the number
-        // return: i      => index where parsing is ended
-        // return: num    => parsed number
-        // return: ok     => is an input successfully parsed as f64
+        // NOTE: `+` and `-` prefix is part of the number
+        // return: (
+        //     i   => index where parsing is ended
+        //     num => parsed number
+        //     ok  => is an input successfully parsed as f64
+        // )
 
         str_len := len(str)
-        
+
         if strings.index_byte("+-", str[0]) >= 0 && (str_len == 1 || strings.index_byte(".0123456789", str[1]) < 0) {
             return 0, 0, false
         }
-        
+
         for i < str_len {
             i += 1
             num, ok = strconv.parse_f64(str[:i]) // can be optimized
@@ -135,8 +143,10 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
 
     parse_paren :: proc(str: string) -> (i: int, ok: bool) {
         // parse parentheses
-        // return: i          => index where parsing is ended
-        // return: ok         => is parentheses match
+        // return: (
+        //     i  => index where parsing is ended
+        //     ok => is parentheses match
+        // )
 
         str_len := len(str)
         opened: uint = 1
@@ -147,18 +157,14 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
 
         for i < str_len - 1 {
             i += 1
-
-            if str[i] == '(' {
+            switch str[i] {
+            case '(':
                 opened += 1
-                continue
-            }
-
-            if str[i] == ')' {
+            case ')':
                 opened -= 1
                 if opened < 0 {
                     return i, false
                 }
-                continue
             }
         }
 
@@ -306,7 +312,7 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
             if ok {
                 // set offset
                 offset = parse_len
-                
+
                 // add number
                 nums_i += 1
                 nums[nums_i] = num
@@ -314,7 +320,7 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
                 continue
             }
         }
-        
+
         // parse number
         {
             parse_len, num, ok := parse_number(input[pos:])
@@ -368,8 +374,8 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
     return nums[0], true
 }
 
-// NOTE: maybe replace this with readline or linenoise...
-read_from_stdin :: proc() -> strings.Builder {
+// TODO: replace this with readline or linenoise...
+stdin_readline :: proc() -> strings.Builder {
     stdin_stream := os.stream_from_handle(os.stdin)
     stdin_reader := io.to_byte_reader(stdin_stream)
     input_builder := strings.make_builder_none()

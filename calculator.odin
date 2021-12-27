@@ -62,9 +62,7 @@ test_calculate :: proc(input: string, expected_res: f64) {
 
 print_calculate :: proc(input: string) {
     result, ok := calculate(input)
-    if ok {
-        fmt.printf("  = {:.6f}\n", result)
-    }
+    if ok do fmt.printf("  = {:.6f}\n", result)
     fmt.println()
 }
 
@@ -162,9 +160,7 @@ calculate :: proc(input: string) -> (result: f64, ok: bool) {
                 opened += 1
             case ')':
                 opened -= 1
-                if opened < 0 {
-                    return i, false
-                }
+                if opened < 0 do return i, false
             }
         }
 

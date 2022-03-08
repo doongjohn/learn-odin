@@ -8,7 +8,7 @@ package main
 // - [x] grouping with parentheses
 // - [x] predefined constants
 // - [ ] custom math functions
-// - [ ] allow unicode character
+// - [ ] allow unicode input
 
 // References:
 // https://en.wikipedia.org/wiki/Shunting-yard_algorithm

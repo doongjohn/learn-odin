@@ -12,13 +12,14 @@ main :: proc() {
 		p : ^int
 		//	^^^^ --> pointer to int
 
-		// new() allocates the memory in heap and free() deallocates the memory
-		// (you can use the context system for a custom allocator)
+		// new() allocates the memory and free() deallocates the memory
+		// (you can use the context system to use custom allocator)
 		p = new(int)
 		defer free(p)
 
 		fmt.println(p^)
-		p^ = 10 // --> dereference the pointer
+		//          ^^ --> dereference the pointer
+		p^ = 10
 		fmt.println(p^)
 	}
 
@@ -34,21 +35,21 @@ main :: proc() {
 		case a == 10 && b == "hello":
 			fmt.printf("{}, {}\n", a, b)
 
-		case:
-			fmt.printf("what??")
+		case: // default case
+			fmt.println("what??")
 		}
 	}
 
 	// string utf8 support is very nice
 	{
-		str : string
-		str = "안녕"
+		str: string = "안녕"
 
 		count := utf8.rune_count_in_string(str)
-		fmt.printf("rune length: {}\n", count)
+		fmt.printf("rune count: {}\n", count)
 
 		for c in str {
 			fmt.println(c)
+			//          ^ --> this is utf8 rune (not a byte)
 		}
 	}
 
@@ -62,7 +63,7 @@ main :: proc() {
 		fmt.printf("str ptr1: {}\n", strings.ptr_from_string(str1))
 		fmt.printf("str ptr2: {}\n", strings.ptr_from_string(str2))
 
-		str2 = str1
+		str2 = str1 // <-- does not copy on assign so both string points to the same buffer
 		fmt.println(str1)
 		fmt.println(str2)
 		fmt.printf("str ptr1: {}\n", strings.ptr_from_string(str1))
@@ -78,28 +79,28 @@ main :: proc() {
 	// read string from stdin
 	{
 		fmt.print("input: ")
-		str_builder := readline_from_stdin()
+		str_builder, err := readline_from_stdin()
 		defer strings.destroy_builder(&str_builder)
-
-		input := strings.to_string(str_builder)
-		fmt.printf("read: {}\n", input)
+		if err == .None {
+			input := strings.to_string(str_builder)
+			fmt.printf("read: {}\n", input)
+		}
 	}
 }
 
 
-readline_from_stdin :: proc() -> strings.Builder {
+readline_from_stdin :: proc() -> (str_builder: strings.Builder, error: io.Error) {
 	stdin_stream := os.stream_from_handle(os.stdin)
 	stdin_reader := io.to_byte_reader(stdin_stream)
-	input_builder := strings.make_builder_none()
+	str_builder = strings.make_builder_none()
 
-	ch: byte
-	err: io.Error
-
+	char: u8
+	delim: u8 = '\n'
 	for {
-		ch, err = io.read_byte(stdin_reader)
-		if ch == '\n' || err != .None { break }
-		strings.write_byte(&input_builder, ch)
+		char = io.read_byte(stdin_reader) or_return
+		if char == delim do break
+		strings.write_byte(&str_builder, char)
 	}
 
-	return input_builder
+	return
 }

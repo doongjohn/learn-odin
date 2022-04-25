@@ -39,7 +39,7 @@ main :: proc() {
 		}
 	}
 
-	// utf8 string
+	// string utf8 support is very nice
 	{
 		str : string
 		str = "안녕"
@@ -52,12 +52,37 @@ main :: proc() {
 		}
 	}
 
+	// string is immutable and does not copy on assign
+	// so you must allocate a new string to modify the string
+	{
+		str1: string = "wow"
+		str2: string = "yay"
+		fmt.println(str1)
+		fmt.println(str2)
+		fmt.printf("str ptr1: {}\n", strings.ptr_from_string(str1))
+		fmt.printf("str ptr2: {}\n", strings.ptr_from_string(str2))
+
+		str2 = str1
+		fmt.println(str1)
+		fmt.println(str2)
+		fmt.printf("str ptr1: {}\n", strings.ptr_from_string(str1))
+		fmt.printf("str ptr2: {}\n", strings.ptr_from_string(str2))
+
+		strings.ptr_from_string(str1)^ = 'W'
+		fmt.println(str1)
+		fmt.println(str2)
+		fmt.printf("str ptr1: {}\n", strings.ptr_from_string(str1))
+		fmt.printf("str ptr2: {}\n", strings.ptr_from_string(str2))
+	}
+
 	// read string from stdin
 	{
+		fmt.print("input: ")
 		str_builder := readline_from_stdin()
 		defer strings.destroy_builder(&str_builder)
 
-		fmt.println(strings.to_string(str_builder))
+		input := strings.to_string(str_builder)
+		fmt.printf("read: {}\n", input)
 	}
 }
 

@@ -1,14 +1,10 @@
 #!/bin/sh
-
-HOME=$HOME
-DIR=`pwd`
-
-(echo | cat << EOM
+(echo | cat << ___
 {
   "collections": [
     { "name": "core", "path": "${HOME}/odin/core" },
     { "name": "vendor", "path": "${HOME}/odin/vendor" },
-    { "name": "shared", "path": "${DIR}/src" }
+    { "name": "shared", "path": "${PWD}/src" }
   ],
   "thread_pool_count": 4,
   "enable_semantic_tokens": false,
@@ -21,5 +17,5 @@ DIR=`pwd`
     "characters": 90
   }
 }
-EOM
+___
 ) > ols.json

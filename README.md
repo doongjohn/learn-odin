@@ -1,10 +1,10 @@
 # learn-odin
 
-how to build
+build
 ```
 odin build src/ -out:app
 ```
-how to run
+run
 ```
 odin run src/
 ```

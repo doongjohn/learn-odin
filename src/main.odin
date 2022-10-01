@@ -7,14 +7,33 @@ import "core:strings"
 import "core:unicode/utf8"
 import "core:intrinsics"
 
+// more about type system of odin
+// https://discord.com/channels/568138951836172421/568871298428698645/1008856568424575178
+// @Tetralux
+// struct { ... } is not a struct literal, but a struct type value.
+// In Odin, typeid is actually a -runtime- concept, but you can make a constant one via polymorphism ($T: typeid) in order to use it where a type is otherwise needed. (e.g: The return type of a procedure.)
+// type is the type returned by type_of.
+// type cannot actually be named anywhere however, as it's actually an internal compiler detail; you'd just use a constant typeid instead, via polymorphism.
+// In your example, it's actually not possible to name that struct type like that, as it would be A : type : struct { .. }, but type isn't something you can use yourself like that.
+// i.e: type and a constant typeid are in practical terms, interchangable.
+// But typeid is otherwise just a runtime value.
+// ------
+// Zig goes to the logical limit more, with types-as-values.
+// Odin doesn't, because it doesn't need to.
+// Since Odin doesn't have CTE (Compile Time Execution), unlike Zig, there's really no need to have variables that are of type type, as you would not be able to use them anyway.
+// i.e: You cannot declare a compile-time only variable in Odin; all variables are runtime.
+// The constant-typeid thing is just a natural thing that comes from how Odin does parametric polymorphism.
+// i.e: $n: int is the same as comptime n: isize in Zig, and $T: typeid follows from that.
+// typeid is basically just an integer that uniquely identifies a type - and that can be known at runtime and compile-time -- which is why it's allowed to masquerade as an actual compile-time only type.
+
 main :: proc() {
 	// pointer
 	{
 		p: ^int
-		//	^^^^ --> pointer to int
+		// ^^^^ --> pointer to int
 
 		// new() allocates the memory and free() deallocates the memory
-		// (you can use the context system to use custom allocator)
+		// (you can use the context system to use a custom allocator)
 		p = new(int)
 		defer free(p)
 
@@ -42,9 +61,12 @@ main :: proc() {
 		}
 	}
 
-	// string utf8 support is very nice
+	// string
+	// utf8 support is very nice
 	{
 		str: string = "안녕"
+		fmt.printf("str = {}\n", str)
+		fmt.printf("str length: {}\n", len(str))
 
 		count := utf8.rune_count_in_string(str)
 		fmt.printf("rune count: {}\n", count)
@@ -77,11 +99,10 @@ main :: proc() {
 	// read string from stdin
 	{
 		fmt.print("input: ")
-		str_builder, err := readline_from_stdin()
-		defer strings.builder_destroy(&str_builder)
+		input, err := stdin_readline()
 		if err == .None {
-			input := strings.to_string(str_builder)
 			fmt.printf("read: {}\n", input)
+			free(&input)
 		}
 	}
 
@@ -95,8 +116,8 @@ main :: proc() {
 			name: int,
 		}
 
-		say_hello :: proc(somthing_with_name: $T) where intrinsics.type_field_type(T, "name") ==
-			string {
+		say_hello :: proc(somthing_with_name: $T)
+		where intrinsics.type_field_type(T, "name") == string {
 			fmt.printf("Hello, {}!\n", somthing_with_name.name)
 		}
 
@@ -113,17 +134,23 @@ main :: proc() {
 	}
 }
 
-
-readline_from_stdin :: proc() -> (str_builder: strings.Builder, error: io.Error) {
+stdin_readline :: proc() -> (str: string, error: io.Error) {
 	stdin_stream := os.stream_from_handle(os.stdin)
-	stdin_reader := io.to_byte_reader(stdin_stream)
-	str_builder = strings.builder_make_none()
+	stdin_reader := io.to_reader(stdin_stream)
+	str_builder := strings.builder_make_none()
+	defer strings.builder_destroy(&str_builder)
+
 	char: u8
-	delim: u8 = '\n'
+	delimiter: u8 = '\n'
 	for {
 		char = io.read_byte(stdin_reader) or_return
-		if char == delim do break
-		strings.write_byte(&str_builder, char)
+		if char == delimiter {
+			break
+		} else {
+			strings.write_byte(&str_builder, char)
+		}
 	}
+
+	str = strings.clone(strings.to_string(str_builder))
 	return
 }

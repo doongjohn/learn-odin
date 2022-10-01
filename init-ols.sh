@@ -4,7 +4,6 @@
   "collections": [
     { "name": "core", "path": "${HOME}/odin/core" },
     { "name": "vendor", "path": "${HOME}/odin/vendor" },
-    { "name": "shared", "path": "${PWD}/src" }
   ],
   "thread_pool_count": 4,
   "enable_semantic_tokens": false,

@@ -3,6 +3,7 @@ package main
 import "core:io"
 import "core:os"
 import "core:fmt"
+import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
 import "core:intrinsics"
@@ -62,14 +63,14 @@ main :: proc() {
 	}
 
 	// string
-	// utf8 support is very nice
+	// (odin has nice utf8 support)
 	{
 		str: string = "안녕"
 		fmt.printf("str = {}\n", str)
 		fmt.printf("str length: {}\n", len(str))
 
-		count := utf8.rune_count_in_string(str)
-		fmt.printf("rune count: {}\n", count)
+		rune_count := utf8.rune_count_in_string(str)
+		fmt.printf("rune count: {}\n", rune_count)
 
 		for c in str {
 			fmt.println(c)
@@ -87,13 +88,14 @@ main :: proc() {
 		fmt.printf("str ptr1: {}\n", strings.ptr_from_string(str1))
 		fmt.printf("str ptr2: {}\n", strings.ptr_from_string(str2))
 
-		str2 = str1 // <-- does not copy on assign so both string points to the same buffer
+		str2 = str1 // <-- array does not copy on assign
+		//                 so both string points to the same buffer
 		fmt.println(str1)
 		fmt.println(str2)
 		fmt.printf("str ptr1: {}\n", strings.ptr_from_string(str1))
 		fmt.printf("str ptr2: {}\n", strings.ptr_from_string(str2))
 
-		// strings.ptr_from_string(str1)^ = 'W' // --> error
+		// strings.ptr_from_string(str1)^ = 'W' // --> Segmentation fault
 	}
 
 	// read string from stdin
@@ -117,7 +119,7 @@ main :: proc() {
 		}
 
 		say_hello :: proc(somthing_with_name: $T)
-		where intrinsics.type_field_type(T, "name") == string {
+			where intrinsics.type_field_type(T, "name") == string {
 			fmt.printf("Hello, {}!\n", somthing_with_name.name)
 		}
 
@@ -130,7 +132,22 @@ main :: proc() {
 		}
 
 		say_hello(person)
-		// say_hello(dog) // --> error
+		// say_hello(dog) // --> compile-time error (where clause fails)
+	}
+
+	// TODO: procedure group
+	// TODO: context system
+	// TODO: some core lib functions
+
+	// core:slice
+	{
+		// map
+		arr := [?]int{1, 2, 3, 4}
+		new_arr := slice.mapper(arr[:], proc(item: int) -> int {
+			return item * 2
+		})
+		defer delete(new_arr)
+		fmt.println(new_arr)
 	}
 }
 

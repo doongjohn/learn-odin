@@ -1,13 +1,5 @@
 package main
 
-import "core:io"
-import "core:os"
-import "core:fmt"
-import "core:slice"
-import "core:strings"
-import "core:unicode/utf8"
-import "core:intrinsics"
-
 // more about type system of odin
 // https://discord.com/channels/568138951836172421/568871298428698645/1008856568424575178
 // @Tetralux
@@ -26,6 +18,14 @@ import "core:intrinsics"
 // The constant-typeid thing is just a natural thing that comes from how Odin does parametric polymorphism.
 // i.e: $n: int is the same as comptime n: isize in Zig, and $T: typeid follows from that.
 // typeid is basically just an integer that uniquely identifies a type - and that can be known at runtime and compile-time -- which is why it's allowed to masquerade as an actual compile-time only type.
+
+import "core:io"
+import "core:os"
+import "core:fmt"
+import "core:slice"
+import "core:strings"
+import "core:unicode/utf8"
+import "core:intrinsics"
 
 main :: proc() {
 	// pointer
@@ -68,6 +68,7 @@ main :: proc() {
 		str: string = "안녕"
 		fmt.printf("str = {}\n", str)
 		fmt.printf("str length: {}\n", len(str))
+		//                             ^^^^^^^^ --> this is a byte length
 
 		rune_count := utf8.rune_count_in_string(str)
 		fmt.printf("rune count: {}\n", rune_count)
@@ -138,17 +139,6 @@ main :: proc() {
 	// TODO: procedure group
 	// TODO: context system
 	// TODO: some core lib functions
-
-	// core:slice
-	{
-		// map
-		arr := [?]int{1, 2, 3, 4}
-		new_arr := slice.mapper(arr[:], proc(item: int) -> int {
-			return item * 2
-		})
-		defer delete(new_arr)
-		fmt.println(new_arr)
-	}
 }
 
 stdin_readline :: proc() -> (str: string, error: io.Error) {

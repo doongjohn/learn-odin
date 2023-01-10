@@ -1,5 +1,5 @@
 #!/bin/sh
-options="src/ -out:build/main"
+options="src/ -out:out/main"
 
 if [ -z "$1" ]; then
   eval "odin build ${options}"

@@ -5,7 +5,6 @@
     { "name": "core", "path": "${HOME}/odin/core" },
     { "name": "vendor", "path": "${HOME}/odin/vendor" },
   ],
-  "thread_pool_count": 4,
   "enable_semantic_tokens": false,
   "enable_document_symbols": true,
   "enable_hover": true,
@@ -13,7 +12,7 @@
   "enable_snippets": true,
   "formatter": {
     "tabs": true,
-    "characters": 90
+    "characters": 100
   }
 }
 ___

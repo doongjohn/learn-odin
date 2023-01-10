@@ -105,7 +105,7 @@ main :: proc() {
 		input, err := stdin_readline()
 		if err == .None {
 			fmt.printf("read: {}\n", input)
-			free(&input)
+			delete(input)
 		}
 	}
 
@@ -144,17 +144,17 @@ main :: proc() {
 stdin_readline :: proc() -> (str: string, error: io.Error) {
 	stdin_stream := os.stream_from_handle(os.stdin)
 	stdin_reader := io.to_reader(stdin_stream)
-	str_builder := strings.builder_make_none()
+	str_builder := strings.builder_make()
 	defer strings.builder_destroy(&str_builder)
 
-	char: u8
-	delimiter: u8 = '\n'
+	char: rune
+	delimiter: rune = '\n'
 	for {
-		char = io.read_byte(stdin_reader) or_return
+		char, _ = io.read_rune(stdin_reader) or_return
 		if char == delimiter {
 			break
 		} else {
-			strings.write_byte(&str_builder, char)
+			_ = strings.write_rune(&str_builder, char) or_return
 		}
 	}
 

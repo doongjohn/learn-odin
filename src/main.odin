@@ -26,6 +26,7 @@ import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
 import "core:intrinsics"
+import "core:runtime"
 
 main :: proc() {
 	// pointer
@@ -74,8 +75,8 @@ main :: proc() {
 		fmt.printf("rune count: {}\n", rune_count)
 
 		for c in str {
-			fmt.println(c)
-			//          ^ --> this is utf8 rune (not a byte)
+			fmt.printf("type of \"{}\" is a {}\n", c, type_info_of(type_of(c)))
+			//          ^ --> this is a utf8 rune (not a byte)
 		}
 	}
 

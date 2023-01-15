@@ -10,7 +10,7 @@ package main
 // In your example, it's actually not possible to name that struct type like that, as it would be A : type : struct { .. }, but type isn't something you can use yourself like that.
 // i.e: type and a constant typeid are in practical terms, interchangable.
 // But typeid is otherwise just a runtime value.
-// ------
+// ...
 // Zig goes to the logical limit more, with types-as-values.
 // Odin doesn't, because it doesn't need to.
 // Since Odin doesn't have CTE (Compile Time Execution), unlike Zig, there's really no need to have variables that are of type type, as you would not be able to use them anyway.
@@ -18,6 +18,10 @@ package main
 // The constant-typeid thing is just a natural thing that comes from how Odin does parametric polymorphism.
 // i.e: $n: int is the same as comptime n: isize in Zig, and $T: typeid follows from that.
 // typeid is basically just an integer that uniquely identifies a type - and that can be known at runtime and compile-time -- which is why it's allowed to masquerade as an actual compile-time only type.
+// ---
+// tree sitter parser:
+// https://github.com/ap29600/tree-sitter-odin
+// https://github.com/ross-a/tree-sitter-odin
 
 import "core:io"
 import "core:os"
@@ -63,26 +67,23 @@ main :: proc() {
 		}
 	}
 
-	// string
+	// string and rune
 	// (odin has nice utf8 support)
 	{
 		str: string = "안녕"
 		fmt.printf("str = {}\n", str)
-		fmt.printf("str length: {}\n", len(str))
-		//                             ^^^^^^^^ --> this is a byte length
+		fmt.printf("length of \"{}\" is {}\n", str, len(str))
+		//                                          ^^^^^^^^ --> this is a byte length
 
 		rune_count := utf8.rune_count_in_string(str)
-		fmt.printf("rune count: {}\n", rune_count)
+		fmt.printf("rune count of \"{}\" is {}\n", str, rune_count)
 
 		for c in str {
+			//^ --> this is a utf8 rune (not a byte)
 			fmt.printf("type of \"{}\" is a {}\n", c, type_info_of(type_of(c)))
-			//          ^ --> this is a utf8 rune (not a byte)
 		}
-	}
 
-	// string is immutable and does not copy on assign
-	// so you must allocate a new string to modify the string
-	{
+		// string is immutable and does not copy on assign
 		str1: string = "wow"
 		str2: string = "yay"
 		fmt.println(str1)
@@ -91,7 +92,7 @@ main :: proc() {
 		fmt.printf("str ptr2: {}\n", strings.ptr_from_string(str2))
 
 		str2 = str1 // <-- array does not copy on assign
-		//                 so both string points to the same buffer
+		//                 so both string points to the same memory
 		fmt.println(str1)
 		fmt.println(str2)
 		fmt.printf("str ptr1: {}\n", strings.ptr_from_string(str1))
@@ -103,10 +104,11 @@ main :: proc() {
 	// read string from stdin
 	{
 		fmt.print("input: ")
-		input, err := stdin_readline()
-		if err == .None {
+		if input, err := stdin_readline(); err == .None {
 			fmt.printf("read: {}\n", input)
 			delete(input)
+		} else {
+			fmt.printf("\nerr: {}\n", err)
 		}
 	}
 
@@ -137,28 +139,25 @@ main :: proc() {
 		// say_hello(dog) // --> compile-time error (where clause fails)
 	}
 
-	// TODO: procedure group
+	// TODO: memory allocators
 	// TODO: context system
-	// TODO: some core lib functions
 }
 
-stdin_readline :: proc() -> (str: string, error: io.Error) {
+stdin_readline :: proc() -> (str: string, err: io.Error) {
 	stdin_stream := os.stream_from_handle(os.stdin)
 	stdin_reader := io.to_reader(stdin_stream)
+
 	str_builder := strings.builder_make()
 	defer strings.builder_destroy(&str_builder)
 
-	char: rune
-	delimiter: rune = '\n'
+	delimiter: rune : '\n'
 	for {
-		char, _ = io.read_rune(stdin_reader) or_return
-		if char == delimiter {
-			break
-		} else {
-			_ = strings.write_rune(&str_builder, char) or_return
-		}
+		r, _ := io.read_rune(stdin_reader) or_return
+		if r == delimiter do break
+		_ = strings.write_rune(&str_builder, r) or_return
 	}
 
+	// clone the result to extend its lifetime
 	str = strings.clone(strings.to_string(str_builder))
 	return
 }

@@ -105,10 +105,10 @@ main :: proc() {
 	{
 		fmt.print("input: ")
 		if input, err := stdin_readline(); err == .None {
+			defer delete(input)
 			fmt.printf("read: {}\n", input)
-			delete(input)
 		} else {
-			fmt.printf("\nerr: {}\n", err)
+			fmt.printf("err: {}\n", err)
 		}
 	}
 
@@ -122,8 +122,8 @@ main :: proc() {
 			name: int,
 		}
 
-		say_hello :: proc(somthing_with_name: $T)
-			where intrinsics.type_field_type(T, "name") == string {
+		say_hello :: proc(somthing_with_name: $T) where
+			intrinsics.type_field_type(T, "name") == string {
 			fmt.printf("Hello, {}!\n", somthing_with_name.name)
 		}
 

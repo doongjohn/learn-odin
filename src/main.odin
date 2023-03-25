@@ -158,6 +158,7 @@ stdin_readline :: proc() -> (str: string, err: io.Error) {
 	}
 
 	// clone the result to extend its lifetime
+	// becuase `strings.builder_destroy` deallocates the buffer
 	str = strings.clone(strings.to_string(str_builder))
 	return
 }

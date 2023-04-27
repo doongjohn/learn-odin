@@ -25,6 +25,7 @@ package main
 
 import "core:io"
 import "core:os"
+import "core:mem"
 import "core:fmt"
 import "core:slice"
 import "core:strings"
@@ -79,7 +80,6 @@ main :: proc() {
 		fmt.printf("rune count of \"{}\" is {}\n", str, rune_count)
 
 		for c in str {
-			//^ --> this is a utf8 rune (not a byte)
 			fmt.printf("type of \"{}\" is a {}\n", c, type_info_of(type_of(c)))
 		}
 
@@ -88,27 +88,30 @@ main :: proc() {
 		str2: string = "yay"
 		fmt.println(str1)
 		fmt.println(str2)
-		fmt.printf("str ptr1: {}\n", strings.ptr_from_string(str1))
-		fmt.printf("str ptr2: {}\n", strings.ptr_from_string(str2))
+		fmt.printf("str ptr1: {}\n", raw_data(str1))
+		fmt.printf("str ptr2: {}\n", raw_data(str2))
 
 		str2 = str1 // <-- array does not copy on assign
 		//                 so both string points to the same memory
 		fmt.println(str1)
 		fmt.println(str2)
-		fmt.printf("str ptr1: {}\n", strings.ptr_from_string(str1))
-		fmt.printf("str ptr2: {}\n", strings.ptr_from_string(str2))
+		fmt.printf("str ptr1: {}\n", raw_data(str1))
+		fmt.printf("str ptr2: {}\n", raw_data(str2))
 
-		// strings.ptr_from_string(str1)^ = 'W' // --> Segmentation fault
+		// raw_data(str1)^ = 'W' // --> Segmentation fault
 	}
 
 	// read string from stdin
 	{
 		fmt.print("input: ")
-		if input, err := stdin_readline(); err == .None {
+		input, err := stdin_readline()
+		if err == nil {
 			defer delete(input)
 			fmt.printf("read: {}\n", input)
+			fmt.printf("rune count: {}\n", utf8.rune_count(input))
+			fmt.printf("byte size: {}\n", len(input))
 		} else {
-			fmt.printf("err: {}\n", err)
+			fmt.println("err: `stdin_readline()` failed")
 		}
 	}
 
@@ -122,8 +125,9 @@ main :: proc() {
 			name: int,
 		}
 
-		say_hello :: proc(somthing_with_name: $T) where
-			intrinsics.type_field_type(T, "name") == string {
+		// geneic constraints (static assert)
+		say_hello :: proc(somthing_with_name: $T)
+			where intrinsics.type_field_type(T, "name") == string {
 			fmt.printf("Hello, {}!\n", somthing_with_name.name)
 		}
 
@@ -139,26 +143,44 @@ main :: proc() {
 		// say_hello(dog) // --> compile-time error (where clause fails)
 	}
 
-	// TODO: memory allocators
-	// TODO: context system
+	// iterator
+	{
+		// there is no iterator: just use a simple proc
+		iter :: proc(i: ^int) -> (int, bool) {
+			i^ += 2
+			return i^, i^ < 10
+		}
+
+		i: int = 0
+		for {
+			n, next := iter(&i)
+			if !next do break
+
+			fmt.printf("{}\n", n)
+		}
+	}
 }
 
-stdin_readline :: proc() -> (str: string, err: io.Error) {
+stdin_readline :: proc() -> (str: string, err: union{io.Error, mem.Allocator_Error}) {
 	stdin_stream := os.stream_from_handle(os.stdin)
 	stdin_reader := io.to_reader(stdin_stream)
 
-	str_builder := strings.builder_make()
+	io_err: io.Error = nil
+	mem_err: mem.Allocator_Error = nil
+
+	str_builder: strings.Builder
+	str_builder = strings.builder_make() or_return
 	defer strings.builder_destroy(&str_builder)
 
-	delimiter: rune : '\n'
 	for {
 		r, _ := io.read_rune(stdin_reader) or_return
-		if r == delimiter do break
+		if slice.contains([]rune{'\n', '\r'}, r) do break
 		_ = strings.write_rune(&str_builder, r) or_return
 	}
 
 	// clone the result to extend its lifetime
 	// becuase `strings.builder_destroy` deallocates the buffer
-	str = strings.clone(strings.to_string(str_builder))
+	str = strings.clone(strings.to_string(str_builder)) or_return
+
 	return
 }

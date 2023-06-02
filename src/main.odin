@@ -110,6 +110,9 @@ main :: proc() {
 			fmt.printf("read: {}\n", input)
 			fmt.printf("rune count: {}\n", utf8.rune_count(input))
 			fmt.printf("byte size: {}\n", len(input))
+			for r in input {
+				fmt.printf("rune: {}\n", r)
+			}
 		} else {
 			fmt.println("err: `stdin_readline()` failed")
 		}
@@ -126,8 +129,8 @@ main :: proc() {
 		}
 
 		// geneic constraints (static assert)
-		say_hello :: proc(somthing_with_name: $T)
-			where intrinsics.type_field_type(T, "name") == string {
+		say_hello :: proc(somthing_with_name: $T) where
+			intrinsics.type_field_type(T, "name") == string {
 			fmt.printf("Hello, {}!\n", somthing_with_name.name)
 		}
 
@@ -159,9 +162,64 @@ main :: proc() {
 			fmt.printf("{}\n", n)
 		}
 	}
+
+	// memory error
+	{
+		mem_alloc_test :: proc() -> (num: int, err: mem.Allocator_Error) #optional_allocator_error {
+			fmt.println("mem_alloc_test")
+			return -1, mem.Allocator_Error.Out_Of_Memory
+		}
+
+		{
+			num := mem_alloc_test()
+		}
+
+		{
+			num, err := mem_alloc_test()
+			fmt.printf("err: {}\n", err)
+		}
+	}
+
+	// file io
+	{
+		fmt.println("file io")
+
+		file_path :: "./wow.txt"
+		file_content :: "안녕하세요!\n"
+
+		if os.exists(file_path) {
+			fmt.println("removing ./wow.txt")
+			err := os.remove(file_path)
+			if err != os.ERROR_NONE {
+				fmt.printf("os.remove err: {}\n", err)
+			}
+		}
+
+		// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
+		fmt.println("creating ./wow.txt")
+		fd, err := os.open(
+			file_path,
+			os.O_CREATE | os.O_RDWR,
+			os.S_IRUSR | os.S_IWUSR | os.S_IRWXG | os.S_IRWXO,
+		)
+		if err != os.ERROR_NONE {
+			fmt.printf("os.open err: {}\n", err)
+		} else {
+			_, write_err := os.write_string(fd, file_content)
+			if write_err != os.ERROR_NONE {
+				fmt.printf("os.write_string err: {}\n", err)
+			} else {
+				fmt.println("text written")
+			}
+			os.close(fd)
+		}
+	}
 }
 
-stdin_readline :: proc() -> (str: string, err: union{io.Error, mem.Allocator_Error}) {
+stdin_readline :: proc() -> (str: string, err: union {
+		io.Error,
+		mem.Allocator_Error,
+	}) {
 	stdin_stream := os.stream_from_handle(os.stdin)
 	stdin_reader := io.to_reader(stdin_stream)
 

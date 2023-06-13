@@ -19,9 +19,6 @@ package main
 // i.e: $n: int is the same as comptime n: isize in Zig, and $T: typeid follows from that.
 // typeid is basically just an integer that uniquely identifies a type - and that can be known at runtime and compile-time -- which is why it's allowed to masquerade as an actual compile-time only type.
 // ---
-// tree sitter parser:
-// https://github.com/ap29600/tree-sitter-odin
-// https://github.com/ross-a/tree-sitter-odin
 
 import "core:io"
 import "core:os"

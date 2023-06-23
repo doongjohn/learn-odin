@@ -182,7 +182,6 @@ main :: proc() {
 		fmt.println("file io")
 
 		file_path :: "./wow.txt"
-		file_content :: "안녕하세요!\n"
 
 		if os.exists(file_path) {
 			fmt.println("removing ./wow.txt")
@@ -192,23 +191,28 @@ main :: proc() {
 			}
 		}
 
-		// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
 		fmt.println("creating ./wow.txt")
+
+		// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
 		fd, err := os.open(
 			file_path,
 			os.O_CREATE | os.O_RDWR,
 			os.S_IRUSR | os.S_IWUSR | os.S_IRWXG | os.S_IRWXO,
 		)
+		defer os.close(fd)
+
 		if err != os.ERROR_NONE {
 			fmt.printf("os.open err: {}\n", err)
 		} else {
-			_, write_err := os.write_string(fd, file_content)
-			if write_err != os.ERROR_NONE {
-				fmt.printf("os.write_string err: {}\n", err)
-			} else {
-				fmt.println("text written")
+			s, ok := io.to_writer(os.stream_from_handle(fd))
+			if ok {
+				_, write_err := io.write_string(s, "안녕하세요!\n")
+				if write_err != nil {
+					fmt.printf("io.write_string err: {}\n", write_err)
+				} else {
+					fmt.println("text written")
+				}
 			}
-			os.close(fd)
 		}
 	}
 }

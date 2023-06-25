@@ -59,8 +59,7 @@ main :: proc() {
 		case a == 10 && b == "hello":
 			fmt.printf("{}, {}\n", a, b)
 
-		case:
-			// default case
+		case: // default case
 			fmt.println("what??")
 		}
 	}
@@ -101,17 +100,22 @@ main :: proc() {
 	// read string from stdin
 	{
 		fmt.print("input: ")
-		input, err := stdin_readline()
-		if err == nil {
-			defer delete(input)
-			fmt.printf("read: {}\n", input)
-			fmt.printf("rune count: {}\n", utf8.rune_count(input))
-			fmt.printf("byte size: {}\n", len(input))
-			for r in input {
-				fmt.printf("rune: {}\n", r)
-			}
+		stdin_reader, ok := io.to_reader(os.stream_from_handle(os.stdin))
+		if !ok {
+			fmt.println("io.to_reader failed")
 		} else {
-			fmt.println("err: `stdin_readline()` failed")
+			input, err := stdin_readline(stdin_reader)
+			if err == nil {
+				defer delete(input)
+				fmt.printf("read: {}\n", input)
+				fmt.printf("rune count: {}\n", utf8.rune_count(input))
+				fmt.printf("byte size: {}\n", len(input))
+				for r in input {
+					fmt.printf("rune: {}\n", r)
+				}
+			} else {
+				fmt.println("err: `stdin_readline()` failed")
+			}
 		}
 	}
 
@@ -184,15 +188,14 @@ main :: proc() {
 		file_path :: "./wow.txt"
 
 		if os.exists(file_path) {
-			fmt.println("removing ./wow.txt")
+			fmt.printf("removing: {}\n", file_path)
 			err := os.remove(file_path)
 			if err != os.ERROR_NONE {
 				fmt.printf("os.remove err: {}\n", err)
 			}
 		}
 
-		fmt.println("creating ./wow.txt")
-
+		fmt.printf("creating: {}\n", file_path)
 		// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
 		fd, err := os.open(
 			file_path,
@@ -210,25 +213,29 @@ main :: proc() {
 				if write_err != nil {
 					fmt.printf("io.write_string err: {}\n", write_err)
 				} else {
-					fmt.println("text written")
+					fmt.print("text written: ")
+					_, seek_err := os.seek(fd, 0, 0)
+					if seek_err != os.ERROR_NONE {
+						fmt.printf("os.seek err: {}\n", seek_err)
+					} else {
+						content, ok := os.read_entire_file(fd)
+						if !ok {
+							fmt.println("os.read_entire_file failed")
+						} else {
+							fmt.print(strings.string_from_ptr(&content[0], len(content)))
+						}
+					}
 				}
 			}
 		}
 	}
 }
 
-stdin_readline :: proc() -> (str: string, err: union {
-		io.Error,
-		mem.Allocator_Error,
-	}) {
-	stdin_stream := os.stream_from_handle(os.stdin)
-	stdin_reader := io.to_reader(stdin_stream)
-
+stdin_readline :: proc(stdin_reader: io.Reader) -> (str: string, err: union { io.Error, mem.Allocator_Error }) {
 	io_err: io.Error = nil
 	mem_err: mem.Allocator_Error = nil
 
-	str_builder: strings.Builder
-	str_builder = strings.builder_make() or_return
+	str_builder := strings.builder_make() or_return
 	defer strings.builder_destroy(&str_builder)
 
 	for {

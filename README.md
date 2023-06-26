@@ -2,9 +2,9 @@
 
 build
 ```
-odin build src/ -out:app
+./build.sh
 ```
 run
 ```
-odin run src/
+./build.sh run
 ```

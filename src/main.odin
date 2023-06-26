@@ -23,6 +23,7 @@ package main
 import "core:io"
 import "core:os"
 import "core:mem"
+import "core:log"
 import "core:fmt"
 import "core:slice"
 import "core:strings"
@@ -31,6 +32,8 @@ import "core:intrinsics"
 import "core:runtime"
 
 main :: proc() {
+	context.logger = log.create_console_logger()
+
 	// pointer
 	{
 		p: ^int
@@ -102,10 +105,12 @@ main :: proc() {
 		fmt.print("input: ")
 		stdin_reader, ok := io.to_reader(os.stream_from_handle(os.stdin))
 		if !ok {
-			fmt.println("io.to_reader failed")
+			log.error("io.to_reader failed")
 		} else {
 			input, err := stdin_readline(stdin_reader)
-			if err == nil {
+			if err != nil {
+				log.error("stdin_readline failed")
+			} else {
 				defer delete(input)
 				fmt.printf("read: {}\n", input)
 				fmt.printf("rune count: {}\n", utf8.rune_count(input))
@@ -113,8 +118,6 @@ main :: proc() {
 				for r in input {
 					fmt.printf("rune: {}\n", r)
 				}
-			} else {
-				fmt.println("err: `stdin_readline()` failed")
 			}
 		}
 	}
@@ -166,18 +169,18 @@ main :: proc() {
 
 	// memory error
 	{
-		mem_alloc_test :: proc() -> (num: int, err: mem.Allocator_Error) #optional_allocator_error {
+		mem_alloc_test :: proc() -> (data: string, err: mem.Allocator_Error) #optional_allocator_error {
 			fmt.println("mem_alloc_test")
-			return -1, mem.Allocator_Error.Out_Of_Memory
+			return "", mem.Allocator_Error.Out_Of_Memory
 		}
 
 		{
-			num := mem_alloc_test()
+			data := mem_alloc_test()
 		}
 
 		{
-			num, err := mem_alloc_test()
-			fmt.printf("err: {}\n", err)
+			data, err := mem_alloc_test()
+			log.errorf("{}", err)
 		}
 	}
 
@@ -191,7 +194,7 @@ main :: proc() {
 			fmt.printf("removing: {}\n", file_path)
 			err := os.remove(file_path)
 			if err != os.ERROR_NONE {
-				fmt.printf("os.remove err: {}\n", err)
+				log.errorf("os.remove err: {}", err)
 			}
 		}
 
@@ -205,22 +208,22 @@ main :: proc() {
 		defer os.close(fd)
 
 		if err != os.ERROR_NONE {
-			fmt.printf("os.open err: {}\n", err)
+			log.errorf("os.open err: {}", err)
 		} else {
 			s, ok := io.to_writer(os.stream_from_handle(fd))
 			if ok {
 				_, write_err := io.write_string(s, "안녕하세요!\n")
 				if write_err != nil {
-					fmt.printf("io.write_string err: {}\n", write_err)
+					log.errorf("io.write_string err: {}", write_err)
 				} else {
 					fmt.print("text written: ")
 					_, seek_err := os.seek(fd, 0, 0)
 					if seek_err != os.ERROR_NONE {
-						fmt.printf("os.seek err: {}\n", seek_err)
+						log.errorf("os.seek err: {}", seek_err)
 					} else {
 						content, ok := os.read_entire_file(fd)
 						if !ok {
-							fmt.println("os.read_entire_file failed")
+							log.error("os.read_entire_file failed")
 						} else {
 							fmt.print(strings.string_from_ptr(&content[0], len(content)))
 						}

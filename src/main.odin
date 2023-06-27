@@ -96,8 +96,6 @@ main :: proc() {
 		fmt.println(str2)
 		fmt.printf("str ptr1: {}\n", raw_data(str1))
 		fmt.printf("str ptr2: {}\n", raw_data(str2))
-
-		// raw_data(str1)^ = 'W' // --> Segmentation fault
 	}
 
 	// read string from stdin
@@ -108,16 +106,15 @@ main :: proc() {
 			log.error("io.to_reader failed")
 		} else {
 			input, err := stdin_readline(stdin_reader)
+			defer if err == nil do delete(input)
+
 			if err != nil {
 				log.error("stdin_readline failed")
 			} else {
-				defer delete(input)
 				fmt.printf("read: {}\n", input)
 				fmt.printf("rune count: {}\n", utf8.rune_count(input))
 				fmt.printf("byte size: {}\n", len(input))
-				for r in input {
-					fmt.printf("rune: {}\n", r)
-				}
+				for r in input do fmt.printf("rune: {}\n", r)
 			}
 		}
 	}

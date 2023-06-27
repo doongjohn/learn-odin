@@ -130,8 +130,8 @@ main :: proc() {
 		}
 
 		// geneic constraints (static assert)
-		say_hello :: proc(somthing_with_name: $T) where
-			intrinsics.type_field_type(T, "name") == string {
+		say_hello :: proc(somthing_with_name: $T)
+			where intrinsics.type_field_type(T, "name") == string {
 			fmt.printf("Hello, {}!\n", somthing_with_name.name)
 		}
 
@@ -166,18 +166,22 @@ main :: proc() {
 
 	// memory error
 	{
-		mem_alloc_test :: proc() -> (data: string, err: mem.Allocator_Error) #optional_allocator_error {
-			fmt.println("mem_alloc_test")
-			return "", mem.Allocator_Error.Out_Of_Memory
+		mem_alloc_test :: proc() -> (data: ^int, err: mem.Allocator_Error) #optional_allocator_error {
+			fmt.println("mem_alloc_test()")
+			return nil, mem.Allocator_Error.Out_Of_Memory
 		}
 
 		{
-			data := mem_alloc_test()
+			data := mem_alloc_test() // <-- Allocator_Error is ignored ???
+			num := data^ // <-- program crashes without printing any error
+			fmt.printf("this is fine: {}\n", num)
 		}
 
 		{
 			data, err := mem_alloc_test()
-			log.errorf("{}", err)
+			if err != nil {
+				log.errorf("{}", err)
+			}
 		}
 	}
 

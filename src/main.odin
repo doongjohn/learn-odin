@@ -105,10 +105,10 @@ main :: proc() {
 		if !ok {
 			log.error("io.to_reader failed")
 		} else {
-			input, err := stdin_readline(stdin_reader)
-			defer if err == nil do delete(input)
+			input, ok := stdin_readline(stdin_reader)
+			defer if ok do delete(input)
 
-			if err != nil {
+			if !ok {
 				log.error("stdin_readline failed")
 			} else {
 				fmt.printf("read: {}\n", input)
@@ -235,22 +235,30 @@ main :: proc() {
 	}
 }
 
-stdin_readline :: proc(stdin_reader: io.Reader) -> (str: string, err: union { io.Error, mem.Allocator_Error }) {
-	io_err: io.Error = nil
+stdin_readline :: proc(stdin_reader: io.Reader) -> (str: string = "", ok: bool = false) {
 	mem_err: mem.Allocator_Error = nil
 
-	str_builder := strings.builder_make() or_return
-	defer strings.builder_destroy(&str_builder)
+	str_builder: strings.Builder
+	str_builder, mem_err = strings.builder_make()
+	defer if mem_err != nil do strings.builder_destroy(&str_builder)
+	if mem_err != nil do return
 
+	io_err: io.Error = nil
+	r: rune
 	for {
-		r, _ := io.read_rune(stdin_reader) or_return
+		r, _, io_err = io.read_rune(stdin_reader)
+		if io_err != nil do return
+
 		if slice.contains([]rune{'\n', '\r'}, r) do break
-		_ = strings.write_rune(&str_builder, r) or_return
+
+		_, io_err = strings.write_rune(&str_builder, r)
+		if io_err != nil do return
 	}
 
 	// clone the result to extend its lifetime
 	// becuase `strings.builder_destroy` deallocates the buffer
-	str = strings.clone(strings.to_string(str_builder)) or_return
+	str, mem_err = strings.clone(strings.to_string(str_builder))
+	if mem_err != nil do return
 
-	return
+	return str, true
 }

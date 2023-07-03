@@ -62,7 +62,8 @@ main :: proc() {
 		case a == 10 && b == "hello":
 			fmt.printf("{}, {}\n", a, b)
 
-		case: // default case
+		case:
+			// default case
 			fmt.println("what??")
 		}
 	}
@@ -166,16 +167,20 @@ main :: proc() {
 
 	// memory error
 	{
-		mem_alloc_test :: proc() -> (data: ^int, err: mem.Allocator_Error) #optional_allocator_error {
+		mem_alloc_test :: proc(
+		) -> (
+			data: ^int,
+			err: mem.Allocator_Error,
+		) #optional_allocator_error {
 			fmt.println("mem_alloc_test()")
 			return nil, mem.Allocator_Error.Out_Of_Memory
 		}
 
-		{
-			data := mem_alloc_test() // <-- Allocator_Error is ignored ???
-			num := data^ // <-- program crashes without printing any error
-			fmt.printf("this is fine: {}\n", num)
-		}
+		// {
+		// 	data := mem_alloc_test() // <-- Allocator_Error is ignored ???
+		// 	num := data^ // <-- program crashes without printing any error
+		// 	fmt.printf("this is fine: {}\n", num)
+		// }
 
 		{
 			data, err := mem_alloc_test()
@@ -204,7 +209,7 @@ main :: proc() {
 		fd, err := os.open(
 			file_path,
 			os.O_CREATE | os.O_RDWR,
-			os.S_IRUSR | os.S_IWUSR | os.S_IRWXG | os.S_IRWXO,
+			os.S_IWUSR | os.S_IRUSR | os.S_IRGRP | os.S_IROTH,
 		)
 		defer os.close(fd)
 

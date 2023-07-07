@@ -62,8 +62,8 @@ main :: proc() {
 		case a == 10 && b == "hello":
 			fmt.printf("{}, {}\n", a, b)
 
+		// default case
 		case:
-			// default case
 			fmt.println("what??")
 		}
 	}
@@ -72,31 +72,29 @@ main :: proc() {
 	// (odin has nice utf8 support)
 	{
 		str: string = "안녕"
-		fmt.printf("str = {}\n", str)
-		fmt.printf("length of \"{}\" is {}\n", str, len(str))
-		//                                          ^^^^^^^^ --> this is a byte length
 
+		byte_length := len(str)
 		rune_count := utf8.rune_count_in_string(str)
+		fmt.printf("byte length of \"{}\" is {}\n", str, byte_length)
 		fmt.printf("rune count of \"{}\" is {}\n", str, rune_count)
 
 		for c in str {
+			// loop through a string per rune
 			fmt.printf("type of \"{}\" is a {}\n", c, type_info_of(type_of(c)))
 		}
 
 		// string is immutable and does not copy on assign
 		str1: string = "wow"
 		str2: string = "yay"
-		fmt.println(str1)
-		fmt.println(str2)
-		fmt.printf("str ptr1: {}\n", raw_data(str1))
-		fmt.printf("str ptr2: {}\n", raw_data(str2))
+		fmt.printf("str1: {}\n", str1)
+		fmt.printf("str2: {}\n", str2)
+		fmt.printf("str ptr1 == ptr2 is {}\n", raw_data(str1) == raw_data(str2))
 
 		str2 = str1 // <-- array does not copy on assign
 		//                 so both string points to the same memory
-		fmt.println(str1)
-		fmt.println(str2)
-		fmt.printf("str ptr1: {}\n", raw_data(str1))
-		fmt.printf("str ptr2: {}\n", raw_data(str2))
+		fmt.printf("str1: {}\n", str1)
+		fmt.printf("str2: {}\n", str2)
+		fmt.printf("str ptr1 == ptr2 is {}\n", raw_data(str1) == raw_data(str2))
 	}
 
 	// read string from stdin

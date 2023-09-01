@@ -194,8 +194,8 @@ main :: proc() {
 
 		file_path :: "./wow.txt"
 
-		if os.exists(file_path) {
-			fmt.printf("removing: {}\n", file_path)
+		fmt.printf("removing: {}\n", file_path)
+		{
 			err := os.remove(file_path)
 			if err != os.ERROR_NONE {
 				log.errorf("os.remove err: {}", err)
@@ -203,8 +203,7 @@ main :: proc() {
 		}
 
 		fmt.printf("creating: {}\n", file_path)
-		// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
-		fd, err := os.open(
+		fd, err := os.open( // https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
 			file_path,
 			os.O_CREATE | os.O_RDWR,
 			os.S_IWUSR | os.S_IRUSR | os.S_IRGRP | os.S_IROTH,
@@ -214,22 +213,21 @@ main :: proc() {
 		if err != os.ERROR_NONE {
 			log.errorf("os.open err: {}", err)
 		} else {
-			s, ok := io.to_writer(os.stream_from_handle(fd))
-			if ok {
+			if s, ok := io.to_writer(os.stream_from_handle(fd)); ok {
 				_, write_err := io.write_string(s, "안녕하세요!\n")
 				if write_err != nil {
 					log.errorf("io.write_string err: {}", write_err)
 				} else {
-					fmt.print("text written: ")
 					_, seek_err := os.seek(fd, 0, 0)
 					if seek_err != os.ERROR_NONE {
 						log.errorf("os.seek err: {}", seek_err)
 					} else {
-						content, ok := os.read_entire_file(fd)
+						bytes, ok := os.read_entire_file(fd)
 						if !ok {
 							log.error("os.read_entire_file failed")
 						} else {
-							fmt.print(strings.string_from_ptr(&content[0], len(content)))
+							file_content := strings.string_from_ptr(&bytes[0], len(bytes))
+							fmt.printf("text written: {}\n", file_content)
 						}
 					}
 				}
@@ -238,6 +236,7 @@ main :: proc() {
 	}
 }
 
+// this function can not read unicode in windows
 stdin_readline :: proc(stdin_reader: io.Reader) -> (str: string = "", ok: bool = false) {
 	mem_err: mem.Allocator_Error = nil
 

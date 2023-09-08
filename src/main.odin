@@ -192,48 +192,76 @@ main :: proc() {
 	{
 		fmt.println("file io")
 
-		file_path :: "./wow.txt"
-
-		fmt.printf("removing: {}\n", file_path)
-		{
-			err := os.remove(file_path)
-			if err != os.ERROR_NONE {
-				log.errorf("os.remove err: {}", err)
-			}
+		write_success := write_to_a_file("./wow.txt", "안녕하세요\n")
+		if !write_success {
+			return
 		}
 
-		fmt.printf("creating: {}\n", file_path)
-		fd, err := os.open( // https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
-			file_path,
-			os.O_CREATE | os.O_RDWR,
-			os.S_IWUSR | os.S_IRUSR | os.S_IRGRP | os.S_IROTH,
-		)
-		defer os.close(fd)
-
-		if err != os.ERROR_NONE {
-			log.errorf("os.open err: {}", err)
-		} else {
-			if s, ok := io.to_writer(os.stream_from_handle(fd)); ok {
-				_, write_err := io.write_string(s, "안녕하세요!\n")
-				if write_err != nil {
-					log.errorf("io.write_string err: {}", write_err)
-				} else {
-					_, seek_err := os.seek(fd, 0, 0)
-					if seek_err != os.ERROR_NONE {
-						log.errorf("os.seek err: {}", seek_err)
-					} else {
-						bytes, ok := os.read_entire_file(fd)
-						if !ok {
-							log.error("os.read_entire_file failed")
-						} else {
-							file_content := strings.string_from_ptr(&bytes[0], len(bytes))
-							fmt.printf("text written: {}\n", file_content)
-						}
-					}
-				}
-			}
+		content, read_success := read_from_a_file("./wow.txt")
+		if !read_success {
+			return
 		}
+
+		log.infof("file content: {}", content)
 	}
+}
+
+write_to_a_file :: proc(file_path: string, content: string) -> (ok: bool = false) {
+	fmt.printf("opening: {}\n", file_path)
+	fd, open_err := os.open( // https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
+		file_path,
+		os.O_CREATE | os.O_RDWR,
+		os.S_IWUSR | os.S_IRUSR | os.S_IRGRP | os.S_IROTH,
+	)
+	defer if open_err == os.ERROR_NONE do os.close(fd)
+	if open_err != os.ERROR_NONE {
+		log.errorf("os.open err: {}", open_err)
+		return
+	}
+
+	s, to_writer_success := io.to_writer(os.stream_from_handle(fd))
+	if !to_writer_success {
+		log.errorf("io.to_writer failed")
+		return
+	}
+
+	_, write_err := io.write_string(s, content)
+	if write_err != nil {
+		log.errorf("io.write_string err: {}", write_err)
+		return
+	}
+
+	ok = true
+	return
+}
+
+read_from_a_file :: proc(file_path: string) -> (content: string, ok: bool = false) {
+	fd, open_err := os.open( // https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
+		file_path,
+		os.O_RDWR,
+	)
+	defer if open_err == os.ERROR_NONE do os.close(fd)
+	if open_err != os.ERROR_NONE {
+		log.errorf("os.open err: {}", open_err)
+		return
+	}
+
+	_, seek_err := os.seek(fd, 0, 0)
+	if seek_err != os.ERROR_NONE {
+		log.errorf("os.seek err: {}", seek_err)
+		return
+	}
+
+	bytes, read_file_success := os.read_entire_file(fd)
+	if !read_file_success {
+		log.error("os.read_entire_file failed")
+		return
+	}
+
+	content = strings.string_from_ptr(&bytes[0], len(bytes))
+	ok = true
+
+	return
 }
 
 // this function can not read unicode in windows

@@ -62,8 +62,7 @@ main :: proc() {
 		case a == 10 && b == "hello":
 			fmt.printf("{}, {}\n", a, b)
 
-		// default case
-		case:
+		case: // default case
 			fmt.println("what??")
 		}
 	}
@@ -100,21 +99,15 @@ main :: proc() {
 	// read string from stdin
 	{
 		fmt.print("input: ")
-		stdin_reader, ok := io.to_reader(os.stream_from_handle(os.stdin))
+		input, ok := stdin_readline()
+		defer if ok do delete(input)
 		if !ok {
-			log.error("io.to_reader failed")
+			log.error("stdin_readline failed")
 		} else {
-			input, ok := stdin_readline(stdin_reader)
-			defer if ok do delete(input)
-
-			if !ok {
-				log.error("stdin_readline failed")
-			} else {
-				fmt.printf("read: {}\n", input)
-				fmt.printf("rune count: {}\n", utf8.rune_count(input))
-				fmt.printf("byte size: {}\n", len(input))
-				for r in input do fmt.printf("rune: {}\n", r)
-			}
+			fmt.printf("read: {}\n", input)
+			fmt.printf("rune count: {}\n", utf8.rune_count(input))
+			fmt.printf("byte size: {}\n", len(input))
+			for r in input do fmt.printf("rune: {}\n", r)
 		}
 	}
 
@@ -163,7 +156,7 @@ main :: proc() {
 		}
 	}
 
-	// memory error
+	// allocator error
 	{
 		mem_alloc_test :: proc(
 		) -> (
@@ -182,9 +175,7 @@ main :: proc() {
 
 		{
 			data, err := mem_alloc_test()
-			if err != nil {
-				log.errorf("{}", err)
-			}
+			if err != nil do log.errorf("{}", err)
 		}
 	}
 
@@ -192,27 +183,24 @@ main :: proc() {
 	{
 		fmt.println("file io")
 
-		write_success := write_to_a_file("./wow.txt", "안녕하세요\n")
-		if !write_success {
-			return
-		}
+		file_path :: "./wow.txt"
 
-		content, read_success := read_from_a_file("./wow.txt")
-		if !read_success {
-			return
-		}
+		write_success := write_to_a_file(file_path, "안녕하세요\n")
+		if !write_success do return
 
-		log.infof("file content: {}", content)
+		content, read_success := read_from_a_file(file_path)
+		if !read_success do return
+
+		fmt.printf("file content: {}\n", strings.trim_space(content))
 	}
 }
 
 write_to_a_file :: proc(file_path: string, content: string) -> (ok: bool = false) {
-	fmt.printf("opening: {}\n", file_path)
-	fd, open_err := os.open( // https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
-		file_path,
-		os.O_CREATE | os.O_RDWR,
-		os.S_IWUSR | os.S_IRUSR | os.S_IRGRP | os.S_IROTH,
-	)
+	// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
+	flag := os.O_CREATE | os.O_RDWR
+	mode := os.S_IWUSR | os.S_IRUSR | os.S_IRGRP | os.S_IROTH
+
+	fd, open_err := os.open( file_path, flag, mode)
 	defer if open_err == os.ERROR_NONE do os.close(fd)
 	if open_err != os.ERROR_NONE {
 		log.errorf("os.open err: {}", open_err)
@@ -225,9 +213,8 @@ write_to_a_file :: proc(file_path: string, content: string) -> (ok: bool = false
 		return
 	}
 
-	_, write_err := io.write_string(s, content)
-	if write_err != nil {
-		log.errorf("io.write_string err: {}", write_err)
+	if _, err := io.write_string(s, content); err != nil {
+		log.errorf("io.write_string err: {}", err)
 		return
 	}
 
@@ -264,21 +251,21 @@ read_from_a_file :: proc(file_path: string) -> (content: string, ok: bool = fals
 	return
 }
 
-// this function can not read unicode in windows
-stdin_readline :: proc(stdin_reader: io.Reader) -> (str: string = "", ok: bool = false) {
-	mem_err: mem.Allocator_Error = nil
+stdin_readline :: proc() -> (str: string = "", ok: bool = false) {
+	stdin_reader := io.to_reader(os.stream_from_handle(os.stdin)) or_return
 
-	str_builder: strings.Builder
-	str_builder, mem_err = strings.builder_make()
+	str_builder, mem_err := strings.builder_make()
 	defer if mem_err != nil do strings.builder_destroy(&str_builder)
 	if mem_err != nil do return
 
 	io_err: io.Error = nil
 	r: rune
 	for {
+		// io.read_rune can not read unicode in windows
 		r, _, io_err = io.read_rune(stdin_reader)
 		if io_err != nil do return
 
+		// check delimiter
 		if slice.contains([]rune{'\n', '\r'}, r) do break
 
 		_, io_err = strings.write_rune(&str_builder, r)
@@ -290,5 +277,6 @@ stdin_readline :: proc(stdin_reader: io.Reader) -> (str: string = "", ok: bool =
 	str, mem_err = strings.clone(strings.to_string(str_builder))
 	if mem_err != nil do return
 
-	return str, true
+	ok = true
+	return
 }

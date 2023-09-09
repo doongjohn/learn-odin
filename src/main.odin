@@ -32,6 +32,7 @@ import "core:intrinsics"
 import "core:runtime"
 
 main :: proc() {
+	// context
 	context.logger = log.create_console_logger()
 
 	// pointer
@@ -109,6 +110,15 @@ main :: proc() {
 			fmt.printf("byte size: {}\n", len(input))
 			for r in input do fmt.printf("rune: {}\n", r)
 		}
+	}
+
+	// anonymous struct
+	{
+		anony_struct :: proc(s: struct{ name: string, age: int }) {
+			fmt.printf("{} is {} years old\n", s.name, s.age)
+		}
+
+		anony_struct({ name = "John", age = 20 })
 	}
 
 	// generic

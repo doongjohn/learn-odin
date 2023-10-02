@@ -207,7 +207,7 @@ main :: proc() {
 
 write_to_a_file :: proc(file_path: string, content: string) -> (ok: bool = false) {
 	// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
-	flag := os.O_CREATE | os.O_RDWR
+	flag := os.O_CREATE | os.O_WRONLY
 	mode := os.S_IWUSR | os.S_IRUSR | os.S_IRGRP | os.S_IROTH
 
 	fd, open_err := os.open( file_path, flag, mode)
@@ -233,9 +233,10 @@ write_to_a_file :: proc(file_path: string, content: string) -> (ok: bool = false
 }
 
 read_from_a_file :: proc(file_path: string) -> (content: string, ok: bool = false) {
-	fd, open_err := os.open( // https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
+	// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
+	fd, open_err := os.open(
 		file_path,
-		os.O_RDWR,
+		os.O_RDONLY,
 	)
 	defer if open_err == os.ERROR_NONE do os.close(fd)
 	if open_err != os.ERROR_NONE {

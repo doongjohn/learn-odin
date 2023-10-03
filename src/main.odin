@@ -20,16 +20,16 @@ package main
 // typeid is basically just an integer that uniquely identifies a type - and that can be known at runtime and compile-time -- which is why it's allowed to masquerade as an actual compile-time only type.
 // ---
 
-import "core:io"
-import "core:os"
-import "core:mem"
-import "core:log"
 import "core:fmt"
+import "core:intrinsics"
+import "core:io"
+import "core:log"
+import "core:mem"
+import "core:os"
+import "core:runtime"
 import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
-import "core:intrinsics"
-import "core:runtime"
 
 main :: proc() {
 	// context
@@ -63,7 +63,8 @@ main :: proc() {
 		case a == 10 && b == "hello":
 			fmt.printf("{}, {}\n", a, b)
 
-		case: // default case
+		case:
+			// default case
 			fmt.println("what??")
 		}
 	}
@@ -114,11 +115,14 @@ main :: proc() {
 
 	// anonymous struct
 	{
-		anony_struct :: proc(s: struct{ name: string, age: int }) {
+		anony_struct :: proc(s: struct {
+				name: string,
+				age:  int,
+			}) {
 			fmt.printf("{} is {} years old\n", s.name, s.age)
 		}
 
-		anony_struct({ name = "John", age = 20 })
+		anony_struct({name = "John", age = 20})
 	}
 
 	// generic
@@ -131,9 +135,20 @@ main :: proc() {
 			name: int,
 		}
 
+		concept_has_name :: proc($T: typeid) where intrinsics.type_has_field(T, "name") {}
+		concept_has_string_name :: proc($T: typeid) where intrinsics.type_field_type(T, "name") == string {}
+
+		p :: proc(value: $T) {
+			concept_has_name(T)
+			a: T = value
+			fmt.printf("{}\n", a)
+		}
+		p(Person{name = "Tom"})
+		p(Animal{name = 10})
+
 		// geneic constraints (static assert)
-		say_hello :: proc(somthing_with_name: $T)
-			where intrinsics.type_field_type(T, "name") == string {
+		say_hello :: proc(somthing_with_name: $T) {
+			concept_has_string_name(T)
 			fmt.printf("Hello, {}!\n", somthing_with_name.name)
 		}
 
@@ -168,11 +183,7 @@ main :: proc() {
 
 	// allocator error
 	{
-		mem_alloc_test :: proc(
-		) -> (
-			data: ^int,
-			err: mem.Allocator_Error,
-		) #optional_allocator_error {
+		mem_alloc_test :: proc() -> (data: ^int, err: mem.Allocator_Error) #optional_allocator_error {
 			fmt.println("mem_alloc_test()")
 			return nil, mem.Allocator_Error.Out_Of_Memory
 		}
@@ -210,7 +221,7 @@ write_to_a_file :: proc(file_path: string, content: string) -> (ok: bool = false
 	flag := os.O_CREATE | os.O_WRONLY
 	mode := os.S_IWUSR | os.S_IRUSR | os.S_IRGRP | os.S_IROTH
 
-	fd, open_err := os.open( file_path, flag, mode)
+	fd, open_err := os.open(file_path, flag, mode)
 	defer if open_err == os.ERROR_NONE do os.close(fd)
 	if open_err != os.ERROR_NONE {
 		log.errorf("os.open err: {}", open_err)
@@ -234,10 +245,7 @@ write_to_a_file :: proc(file_path: string, content: string) -> (ok: bool = false
 
 read_from_a_file :: proc(file_path: string) -> (content: string, ok: bool = false) {
 	// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
-	fd, open_err := os.open(
-		file_path,
-		os.O_RDONLY,
-	)
+	fd, open_err := os.open(file_path, os.O_RDONLY)
 	defer if open_err == os.ERROR_NONE do os.close(fd)
 	if open_err != os.ERROR_NONE {
 		log.errorf("os.open err: {}", open_err)

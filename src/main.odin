@@ -217,12 +217,22 @@ main :: proc() {
 }
 
 write_to_a_file :: proc(file_path: string, content: string) -> (ok: bool = false) {
-	// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
-	flag := os.O_CREATE | os.O_WRONLY
-	mode := os.S_IWUSR | os.S_IRUSR | os.S_IRGRP | os.S_IROTH
+	fd, open_err := proc(file_path: string) -> (os.Handle, os.Errno) {
+		when ODIN_OS == .Linux {
+			// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
+			flag := os.O_CREATE | os.O_WRONLY
+			mode := os.S_IWUSR | os.S_IRUSR | os.S_IRGRP | os.S_IROTH
+			return os.open(file_path, flag, mode)
+		}
 
-	fd, open_err := os.open(file_path, flag, mode)
-	defer if open_err == os.ERROR_NONE do os.close(fd)
+		when ODIN_OS == .Windows {
+			mode := os.O_CREATE | os.O_WRONLY
+			return os.open(file_path, mode)
+		}
+
+		fmt.panicf("Unsupported OS \"{}\"", ODIN_OS_STRING)
+	}(file_path)
+	defer if fd != os.INVALID_HANDLE do os.close(fd)
 	if open_err != os.ERROR_NONE {
 		log.errorf("os.open err: {}", open_err)
 		return
@@ -243,7 +253,7 @@ write_to_a_file :: proc(file_path: string, content: string) -> (ok: bool = false
 	return
 }
 
-read_from_a_file :: proc(file_path: string) -> (content: string, ok: bool = false) {
+read_from_a_file :: proc(file_path: string) -> (content: string = "", ok: bool = false) {
 	// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
 	fd, open_err := os.open(file_path, os.O_RDONLY)
 	defer if open_err == os.ERROR_NONE do os.close(fd)

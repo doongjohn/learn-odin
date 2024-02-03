@@ -206,7 +206,7 @@ main :: proc() {
 
 		file_path :: "./wow.txt"
 
-		write_success := write_to_a_file(file_path, "안녕하세요\n")
+		write_success := write_to_file(file_path, "안녕하세요\n")
 		if !write_success do return
 
 		content, read_success := read_from_a_file(file_path)
@@ -216,7 +216,7 @@ main :: proc() {
 	}
 }
 
-write_to_a_file :: proc(file_path: string, content: string) -> (ok: bool = false) {
+write_to_file :: proc(file_path: string, content: string) -> (ok: bool = false) {
 	fd, open_err := proc(file_path: string) -> (os.Handle, os.Errno) {
 		when ODIN_OS == .Linux {
 			// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
@@ -232,7 +232,9 @@ write_to_a_file :: proc(file_path: string, content: string) -> (ok: bool = false
 
 		fmt.panicf("Unsupported OS \"{}\"", ODIN_OS_STRING)
 	}(file_path)
-	defer if fd != os.INVALID_HANDLE do os.close(fd)
+	defer if fd != os.INVALID_HANDLE {
+		os.close(fd)
+	}
 	if open_err != os.ERROR_NONE {
 		log.errorf("os.open err: {}", open_err)
 		return

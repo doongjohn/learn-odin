@@ -20,13 +20,13 @@ package main
 // typeid is basically just an integer that uniquely identifies a type - and that can be known at runtime and compile-time -- which is why it's allowed to masquerade as an actual compile-time only type.
 // ---
 
+import "base:intrinsics"
+import "base:runtime"
 import "core:fmt"
-import "core:intrinsics"
 import "core:io"
 import "core:log"
 import "core:mem"
 import "core:os"
-import "core:runtime"
 import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"

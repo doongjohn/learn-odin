@@ -33,8 +33,6 @@ import "core:fmt"
 import "core:log"
 
 main :: proc() {
-	defer free_all(context.temp_allocator)
-
 	// context
 	context.logger = log.create_console_logger()
 	defer log.destroy_console_logger(context.logger)

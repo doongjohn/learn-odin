@@ -34,7 +34,7 @@ import "core:log"
 
 main :: proc() {
 	// context
-	context.logger = log.create_console_logger()
+	context.logger = log.create_console_logger(.Debug)
 	defer log.destroy_console_logger(context.logger)
 
 	// pointer
@@ -324,7 +324,7 @@ stdin_readline :: proc() -> (str: string = "", ok: bool = false) {
 	io_err: io.Error = nil
 	r: rune
 	for {
-		// io.read_rune can not read unicode in windows
+		// NOTE: io.read_rune can not read unicode in windows
 		r, _, io_err = io.read_rune(stdin_reader)
 		if io_err != nil do return
 

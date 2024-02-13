@@ -22,18 +22,22 @@ package main
 
 import "base:intrinsics"
 import "base:runtime"
-import "core:fmt"
-import "core:io"
-import "core:log"
 import "core:mem"
+import "core:mem/virtual"
+import "core:io"
 import "core:os"
 import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
+import "core:fmt"
+import "core:log"
 
 main :: proc() {
+	defer free_all(context.temp_allocator)
+
 	// context
 	context.logger = log.create_console_logger()
+	defer log.destroy_console_logger(context.logger)
 
 	// pointer
 	{
@@ -49,6 +53,26 @@ main :: proc() {
 		//          ^^ --> dereference the pointer
 		p^ = 10
 		fmt.println(p^)
+
+		p2 := new_clone(100)
+		//    ^^^^^^^^^^^^^^ --> allocate and initalize the value
+		defer free(p2)
+
+		fmt.println(p2^)
+	}
+
+	// arena allocator
+	{
+		arena: virtual.Arena
+		assert(virtual.arena_init_growing(&arena) == nil)
+		defer virtual.arena_destroy(&arena)
+		context.allocator = virtual.arena_allocator(&arena)
+
+		p1 := new(int)
+		p2 := new(int)
+		p3 := new(int)
+		// no need to free individual allocation
+		// `virtual.arena_destroy` will free all allocations at once
 	}
 
 	// switch case
@@ -81,7 +105,7 @@ main :: proc() {
 
 		for c in str {
 			// loop through a string per rune
-			fmt.printf("type of \"{}\" is a {}\n", c, type_info_of(type_of(c)))
+			fmt.printf("type of \"{}\" is a {}\n", c, typeid_of(type_of(c)))
 		}
 
 		// string is immutable and does not copy on assign
@@ -206,17 +230,50 @@ main :: proc() {
 
 		file_path :: "./wow.txt"
 
-		write_success := write_to_file(file_path, "안녕하세요\n")
+		write_success := write_string_to_file(file_path, "안녕하세요\n")
 		if !write_success do return
 
-		content, read_success := read_from_a_file(file_path)
+		content, read_success := read_string_from_file(file_path)
 		if !read_success do return
+		defer delete(content)
 
 		fmt.printf("file content: {}\n", strings.trim_space(content))
 	}
 }
 
-write_to_file :: proc(file_path: string, content: string) -> (ok: bool = false) {
+read_string_from_file :: proc(file_path: string, allocator := context.allocator) -> (content: string = "", ok: bool = false) {
+	// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
+	fd, open_err := os.open(file_path, os.O_RDONLY)
+	defer if open_err == os.ERROR_NONE {
+		close_err := os.close(fd)
+		if close_err != os.ERROR_NONE {
+			log.errorf("os.close err: {}", close_err)
+		}
+	}
+	if open_err != os.ERROR_NONE {
+		log.errorf("os.open err: {}", open_err)
+		return
+	}
+
+	_, seek_err := os.seek(fd, 0, 0)
+	if seek_err != os.ERROR_NONE {
+		log.errorf("os.seek err: {}", seek_err)
+		return
+	}
+
+	bytes, read_file_success := os.read_entire_file(fd, allocator)
+	if !read_file_success {
+		log.error("os.read_entire_file failed")
+		return
+	}
+
+	content = strings.string_from_ptr(&bytes[0], len(bytes))
+	ok = true
+
+	return
+}
+
+write_string_to_file :: proc(file_path: string, content: string) -> (ok: bool = false) {
 	fd, open_err := proc(file_path: string) -> (os.Handle, os.Errno) {
 		when ODIN_OS == .Linux {
 			// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
@@ -232,8 +289,12 @@ write_to_file :: proc(file_path: string, content: string) -> (ok: bool = false) 
 
 		fmt.panicf("Unsupported OS \"{}\"", ODIN_OS_STRING)
 	}(file_path)
-	defer if fd != os.INVALID_HANDLE {
-		os.close(fd)
+
+	defer if open_err == os.ERROR_NONE {
+		close_err := os.close(fd)
+		if close_err != os.ERROR_NONE {
+			log.errorf("os.close err: {}", close_err)
+		}
 	}
 	if open_err != os.ERROR_NONE {
 		log.errorf("os.open err: {}", open_err)
@@ -255,39 +316,12 @@ write_to_file :: proc(file_path: string, content: string) -> (ok: bool = false) 
 	return
 }
 
-read_from_a_file :: proc(file_path: string) -> (content: string = "", ok: bool = false) {
-	// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
-	fd, open_err := os.open(file_path, os.O_RDONLY)
-	defer if open_err == os.ERROR_NONE do os.close(fd)
-	if open_err != os.ERROR_NONE {
-		log.errorf("os.open err: {}", open_err)
-		return
-	}
-
-	_, seek_err := os.seek(fd, 0, 0)
-	if seek_err != os.ERROR_NONE {
-		log.errorf("os.seek err: {}", seek_err)
-		return
-	}
-
-	bytes, read_file_success := os.read_entire_file(fd)
-	if !read_file_success {
-		log.error("os.read_entire_file failed")
-		return
-	}
-
-	content = strings.string_from_ptr(&bytes[0], len(bytes))
-	ok = true
-
-	return
-}
-
 stdin_readline :: proc() -> (str: string = "", ok: bool = false) {
 	stdin_reader := io.to_reader(os.stream_from_handle(os.stdin)) or_return
 
-	str_builder, mem_err := strings.builder_make()
-	defer if mem_err != nil do strings.builder_destroy(&str_builder)
-	if mem_err != nil do return
+	str_builder, alloc_err := strings.builder_make()
+	if alloc_err != nil do return
+	defer strings.builder_destroy(&str_builder)
 
 	io_err: io.Error = nil
 	r: rune
@@ -305,8 +339,8 @@ stdin_readline :: proc() -> (str: string = "", ok: bool = false) {
 
 	// clone the result to extend its lifetime
 	// becuase `strings.builder_destroy` deallocates the buffer
-	str, mem_err = strings.clone(strings.to_string(str_builder))
-	if mem_err != nil do return
+	str, alloc_err = strings.clone(strings.to_string(str_builder))
+	if alloc_err != nil do return
 
 	ok = true
 	return

@@ -1,20 +1,16 @@
 #!/bin/sh
 
-ODIN_HOME="$HOME/odin"
-
 (echo | cat << ===
 {
   "\$schema": "https://raw.githubusercontent.com/DanielGavin/ols/master/misc/ols.schema.json",
+  "enable_semantic_tokens": false,
+  "enable_document_symbols": true,
   "enable_hover": true,
   "enable_snippets": true,
-  "enable_semantic_tokens": true,
-  "enable_document_symbols": true,
-  "enable_inlay_hints": true,
-  "collections": [
-    { "name": "base", "path": "$ODIN_HOME/base" },
-    { "name": "core", "path": "$ODIN_HOME/core" },
-    { "name": "vendor", "path": "$ODIN_HOME/vendor" }
-  ]
+  "profile": "default",
+	"profiles": [
+		{ "name": "default", "checker_path": ["src"] },
+	]
 }
 ===
 ) > ols.json

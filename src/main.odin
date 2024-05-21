@@ -22,15 +22,15 @@ package main
 
 import "base:intrinsics"
 import "base:runtime"
+import "core:fmt"
+import "core:io"
+import "core:log"
 import "core:mem"
 import "core:mem/virtual"
-import "core:io"
 import "core:os"
 import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
-import "core:fmt"
-import "core:log"
 
 main :: proc() {
 	// context
@@ -157,11 +157,7 @@ main :: proc() {
 			name: int,
 		}
 
-		concept_has_name :: proc($T: typeid) where intrinsics.type_has_field(T, "name") {}
-		concept_has_string_name :: proc($T: typeid) where intrinsics.type_field_type(T, "name") == string {}
-
-		p :: proc(value: $T) {
-			concept_has_name(T)
+		p :: proc(value: $T) where intrinsics.type_has_field(T, "name") {
 			a: T = value
 			fmt.printf("{}\n", a)
 		}
@@ -169,8 +165,9 @@ main :: proc() {
 		p(Animal{name = 10})
 
 		// geneic constraints (static assert)
-		say_hello :: proc(somthing_with_name: $T) {
-			concept_has_string_name(T)
+		say_hello :: proc(
+			somthing_with_name: $T,
+		) where (intrinsics.type_field_type(T, "name") == string) {
 			fmt.printf("Hello, {}!\n", somthing_with_name.name)
 		}
 
@@ -205,7 +202,11 @@ main :: proc() {
 
 	// allocator error
 	{
-		mem_alloc_test :: proc() -> (data: ^int, err: mem.Allocator_Error) #optional_allocator_error {
+		mem_alloc_test :: proc(
+		) -> (
+			data: ^int,
+			err: mem.Allocator_Error,
+		) #optional_allocator_error {
 			fmt.println("mem_alloc_test()")
 			return nil, mem.Allocator_Error.Out_Of_Memory
 		}
@@ -239,7 +240,13 @@ main :: proc() {
 	}
 }
 
-read_string_from_file :: proc(file_path: string, allocator := context.allocator) -> (content: string = "", ok: bool = false) {
+read_string_from_file :: proc(
+	file_path: string,
+	allocator := context.allocator,
+) -> (
+	content: string = "",
+	ok: bool = false,
+) {
 	// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
 	fd, open_err := os.open(file_path, os.O_RDONLY)
 	defer if open_err == os.ERROR_NONE {

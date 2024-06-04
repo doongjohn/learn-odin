@@ -1,4 +1,9 @@
 #!/bin/sh
+
+if [ ! -d './out' ]; then
+  mkdir out
+fi
+
 options='src/ -out:out/main'
 
 if [ -z "$1" ]; then

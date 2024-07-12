@@ -30,6 +30,7 @@ import "core:mem/virtual"
 import "core:os"
 import "core:slice"
 import "core:strings"
+import "core:sys/windows"
 import "core:unicode/utf8"
 
 main :: proc() {
@@ -322,30 +323,50 @@ write_string_to_file :: proc(file_path: string, content: string) -> (ok: bool = 
 }
 
 stdin_readline :: proc() -> (str: string = "", ok: bool = false) {
-	stdin_reader := io.to_reader(os.stream_from_handle(os.stdin)) or_return
+	when ODIN_OS == .Windows {
+		utf16_buf: [10000]u16
+		utf16_read_count: u32 = 0
+		if (!windows.ReadConsoleW(
+				   windows.GetStdHandle(windows.STD_INPUT_HANDLE),
+				   &utf16_buf,
+				   len(utf16_buf),
+				   &utf16_read_count,
+				   nil,
+			   )) {
+			return
+		}
 
-	str_builder, alloc_err := strings.builder_make()
-	if alloc_err != nil do return
-	defer strings.builder_destroy(&str_builder)
+		utf8_str, alloc_err := windows.utf16_to_utf8(utf16_buf[0:utf16_read_count])
+		if alloc_err != nil do return
 
-	io_err: io.Error = nil
-	r: rune
-	for {
-		// NOTE: io.read_rune can not read unicode in windows
-		r, _, io_err = io.read_rune(stdin_reader)
-		if io_err != nil do return
+		str, alloc_err = strings.clone(strings.trim_right(utf8_str, "\r\n"))
+		if alloc_err != nil do return
+	} else {
+		stdin_reader := io.to_reader(os.stream_from_handle(os.stdin)) or_return
 
-		// check delimiter
-		if slice.contains([]rune{'\n', '\r'}, r) do break
+		str_builder, alloc_err := strings.builder_make()
+		if alloc_err != nil do return
+		defer strings.builder_destroy(&str_builder)
 
-		_, io_err = strings.write_rune(&str_builder, r)
-		if io_err != nil do return
+		io_err: io.Error = nil
+		r: rune
+		for {
+			// NOTE: io.read_rune can not read unicode in windows
+			r, _, io_err = io.read_rune(stdin_reader)
+			if io_err != nil do return
+
+			// check delimiter
+			if slice.contains([]rune{'\n', '\r'}, r) do break
+
+			_, io_err = strings.write_rune(&str_builder, r)
+			if io_err != nil do return
+		}
+
+		// clone the result to extend its lifetime
+		// becuase `strings.builder_destroy` deallocates the buffer
+		str, alloc_err = strings.clone(strings.to_string(str_builder))
+		if alloc_err != nil do return
 	}
-
-	// clone the result to extend its lifetime
-	// becuase `strings.builder_destroy` deallocates the buffer
-	str, alloc_err = strings.clone(strings.to_string(str_builder))
-	if alloc_err != nil do return
 
 	ok = true
 	return

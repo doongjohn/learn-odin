@@ -351,7 +351,6 @@ stdin_readline :: proc() -> (str: string = "", ok: bool = false) {
 		io_err: io.Error = nil
 		r: rune
 		for {
-			// NOTE: io.read_rune can not read unicode in windows
 			r, _, io_err = io.read_rune(stdin_reader)
 			if io_err != nil do return
 

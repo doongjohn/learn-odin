@@ -322,24 +322,25 @@ write_string_to_file :: proc(file_path: string, content: string) -> (ok: bool = 
 	return
 }
 
-stdin_readline :: proc() -> (str: string = "", ok: bool = false) {
+stdin_readline :: proc() -> (line: string = "", ok: bool = false) {
 	when ODIN_OS == .Windows {
 		utf16_buf: [10000]u16
 		utf16_read_count: u32 = 0
-		if (!windows.ReadConsoleW(
-				   windows.GetStdHandle(windows.STD_INPUT_HANDLE),
-				   &utf16_buf,
-				   len(utf16_buf),
-				   &utf16_read_count,
-				   nil,
-			   )) {
-			return
-		}
+
+		stdin_handle := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
+		read_console_success := windows.ReadConsoleW(
+			stdin_handle,
+			&utf16_buf,
+			len(utf16_buf),
+			&utf16_read_count,
+			nil,
+		)
+		if !read_console_success do return
 
 		utf8_str, alloc_err := windows.utf16_to_utf8(utf16_buf[0:utf16_read_count])
 		if alloc_err != nil do return
 
-		str, alloc_err = strings.clone(strings.trim_right(utf8_str, "\r\n"))
+		line, alloc_err = strings.clone(strings.trim_right(utf8_str, "\r\n"))
 		if alloc_err != nil do return
 	} else {
 		stdin_reader := io.to_reader(os.stream_from_handle(os.stdin)) or_return
@@ -363,7 +364,7 @@ stdin_readline :: proc() -> (str: string = "", ok: bool = false) {
 
 		// clone the result to extend its lifetime
 		// becuase `strings.builder_destroy` deallocates the buffer
-		str, alloc_err = strings.clone(strings.to_string(str_builder))
+		line, alloc_err = strings.clone(strings.to_string(str_builder))
 		if alloc_err != nil do return
 	}
 

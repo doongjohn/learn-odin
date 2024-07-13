@@ -21,9 +21,7 @@ package main
 // ---
 
 import "base:intrinsics"
-import "base:runtime"
 import "core:fmt"
-import "core:io"
 import "core:log"
 import "core:mem"
 import "core:mem/virtual"

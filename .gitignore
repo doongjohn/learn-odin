@@ -1,5 +1,6 @@
 *.pdb
 *.exe
+out/
 
 ols.json
 hello.txt

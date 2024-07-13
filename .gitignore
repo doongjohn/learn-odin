@@ -1,6 +1,5 @@
-ols.json
-
+*.pdb
 *.exe
-main
 
+ols.json
 hello.txt

@@ -213,8 +213,8 @@ main :: proc() {
 		}
 
 		// {
-		// 	data := mem_alloc_test() // <-- Allocator_Error is ignored ???
-		// 	num := data^ // <-- program crashes without printing any error
+		// 	data := mem_alloc_test() // <-- Allocator_Error can be ignored because of #optional_allocator_error
+		// 	num := data^ // <-- use -debug -sanitize:address to make the program crash
 		// 	fmt.printf("this is fine: {}\n", num)
 		// }
 

@@ -4,7 +4,7 @@ if [ ! -d './out' ]; then
   mkdir out
 fi
 
-options='src/ -out:out/main'
+options='src/ -out:out/main -debug -sanitize:address'
 
 if [ -z "$1" ]; then
   eval "odin build ${options}"

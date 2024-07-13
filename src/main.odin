@@ -208,7 +208,7 @@ main :: proc() {
 			data: ^int,
 			err: mem.Allocator_Error,
 		) #optional_allocator_error {
-			fmt.println("mem_alloc_test()")
+			log.info("mem_alloc_test")
 			return nil, mem.Allocator_Error.Out_Of_Memory
 		}
 
@@ -226,100 +226,21 @@ main :: proc() {
 
 	// file io
 	{
-		fmt.println("file io")
+		file_path :: "./hello.txt"
+		file_content := "안녕하세요\n"
 
-		file_path :: "./wow.txt"
-
-		write_success := write_string_to_file(file_path, "안녕하세요\n")
+		fmt.printf("write file: \"{}\"\n", file_path)
+		write_success := os.write_entire_file(file_path, transmute([]byte)file_content)
 		if !write_success do return
 
-		content, read_success := read_string_from_file(file_path)
+		fmt.printf("read file: \"{}\"\n", file_path)
+		bytes, read_success := os.read_entire_file(file_path)
 		if !read_success do return
-		defer delete(content)
+		defer delete(bytes)
 
-		fmt.printf("file content: {}\n", strings.trim_space(content))
+		str := strings.string_from_ptr(&bytes[0], len(bytes))
+		fmt.printf("file content: {}\n", strings.trim_right(str, "\n"))
 	}
-}
-
-read_string_from_file :: proc(
-	file_path: string,
-	allocator := context.allocator,
-) -> (
-	content: string = "",
-	ok: bool = false,
-) {
-	// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
-	fd, open_err := os.open(file_path, os.O_RDONLY)
-	defer if open_err == os.ERROR_NONE {
-		close_err := os.close(fd)
-		if close_err != os.ERROR_NONE {
-			log.errorf("os.close err: {}", close_err)
-		}
-	}
-	if open_err != os.ERROR_NONE {
-		log.errorf("os.open err: {}", open_err)
-		return
-	}
-
-	_, seek_err := os.seek(fd, 0, 0)
-	if seek_err != os.ERROR_NONE {
-		log.errorf("os.seek err: {}", seek_err)
-		return
-	}
-
-	bytes, read_file_success := os.read_entire_file(fd, allocator)
-	if !read_file_success {
-		log.error("os.read_entire_file failed")
-		return
-	}
-
-	content = strings.string_from_ptr(&bytes[0], len(bytes))
-	ok = true
-
-	return
-}
-
-write_string_to_file :: proc(file_path: string, content: string) -> (ok: bool = false) {
-	fd, open_err := proc(file_path: string) -> (os.Handle, os.Errno) {
-		when ODIN_OS == .Linux {
-			// https://manpages.opensuse.org/Tumbleweed/man-pages/open.2.en.html
-			flag := os.O_CREATE | os.O_WRONLY
-			mode := os.S_IWUSR | os.S_IRUSR | os.S_IRGRP | os.S_IROTH
-			return os.open(file_path, flag, mode)
-		}
-
-		when ODIN_OS == .Windows {
-			mode := os.O_CREATE | os.O_WRONLY
-			return os.open(file_path, mode)
-		}
-
-		fmt.panicf("Unsupported OS \"{}\"", ODIN_OS_STRING)
-	}(file_path)
-
-	defer if open_err == os.ERROR_NONE {
-		close_err := os.close(fd)
-		if close_err != os.ERROR_NONE {
-			log.errorf("os.close err: {}", close_err)
-		}
-	}
-	if open_err != os.ERROR_NONE {
-		log.errorf("os.open err: {}", open_err)
-		return
-	}
-
-	s, to_writer_success := io.to_writer(os.stream_from_handle(fd))
-	if !to_writer_success {
-		log.errorf("io.to_writer failed")
-		return
-	}
-
-	if _, err := io.write_string(s, content); err != nil {
-		log.errorf("io.write_string err: {}", err)
-		return
-	}
-
-	ok = true
-	return
 }
 
 stdin_readline :: proc() -> (line: string = "", ok: bool = false) {

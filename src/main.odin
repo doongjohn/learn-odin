@@ -240,6 +240,9 @@ main :: proc() {
 		str := strings.string_from_ptr(&bytes[0], len(bytes))
 		fmt.printf("file content: {}\n", strings.trim_right(str, "\n"))
 	}
+
+	// don't forget to free temp_allocator if your program has a infinite loop
+	free_all(context.temp_allocator)
 }
 
 stdin_readline :: proc() -> (line: string = "", ok: bool = false) {

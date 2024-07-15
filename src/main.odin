@@ -226,7 +226,7 @@ main :: proc() {
 	// file io
 	{
 		file_path :: "./hello.txt"
-		file_content := "안녕하세요\n"
+		file_content := "안녕, world!\n"
 
 		fmt.printf("write file: \"{}\"\n", file_path)
 		write_success := os.write_entire_file(file_path, transmute([]byte)file_content)

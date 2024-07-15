@@ -9,7 +9,7 @@
 
 ```sh
 # windows
-odin build src\ -out:out\main.exe -debug -sanitize:address
+.\build.cmd
 ```
 
 ## run
@@ -21,5 +21,5 @@ odin build src\ -out:out\main.exe -debug -sanitize:address
 
 ```sh
 # windows
-odin run src\ -out:out\main.exe -debug -sanitize:address
+.\build.cmd run
 ```

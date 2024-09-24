@@ -5,9 +5,7 @@
 ```sh
 # bash
 ./build.sh
-```
 
-```sh
 # windows
 .\build.cmd
 ```
@@ -17,9 +15,7 @@
 ```sh
 # bash
 ./build.sh run
-```
 
-```sh
 # windows
 .\build.cmd run
 ```

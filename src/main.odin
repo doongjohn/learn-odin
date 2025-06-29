@@ -1,5 +1,17 @@
 package main
 
+import "base:intrinsics"
+import "core:fmt"
+import "core:io"
+import "core:log"
+import "core:mem"
+import "core:mem/virtual"
+import "core:os"
+import "core:slice"
+import "core:strings"
+import "core:sys/windows"
+import "core:unicode/utf8"
+
 // more about type system of odin
 // https://discord.com/channels/568138951836172421/568871298428698645/1008856568424575178
 // @Tetralux
@@ -19,18 +31,6 @@ package main
 // i.e: $n: int is the same as comptime n: isize in Zig, and $T: typeid follows from that.
 // typeid is basically just an integer that uniquely identifies a type - and that can be known at runtime and compile-time -- which is why it's allowed to masquerade as an actual compile-time only type.
 // ---
-
-import "base:intrinsics"
-import "core:fmt"
-import "core:io"
-import "core:log"
-import "core:mem"
-import "core:mem/virtual"
-import "core:os"
-import "core:slice"
-import "core:strings"
-import "core:sys/windows"
-import "core:unicode/utf8"
 
 main :: proc() {
 	// context

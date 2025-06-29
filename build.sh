@@ -7,9 +7,9 @@ fi
 options='src/ -out:out/main -debug -sanitize:address'
 
 if [ -z "$1" ]; then
-  eval "odin build ${options}"
+  odin build ${options}
 elif [ $1 = "run" ]; then
-  eval "odin run ${options}"
+  odin run ${options}
 else
   echo 'invalid argument'
   exit 1

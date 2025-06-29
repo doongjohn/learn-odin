@@ -3,13 +3,13 @@
 (echo | cat << ===
 {
   "\$schema": "https://raw.githubusercontent.com/DanielGavin/ols/master/misc/ols.schema.json",
-  "enable_semantic_tokens": false,
+  "enable_semantic_tokens": true,
   "enable_document_symbols": true,
   "enable_hover": true,
   "enable_snippets": true,
   "profile": "default",
 	"profiles": [
-		{ "name": "default", "checker_path": ["src"] },
+		{ "name": "default", "checker_path": ["src"] }
 	]
 }
 ===

@@ -1,7 +1,7 @@
 @echo off
 
-if not exist .\out\ (
-  mkdir .\out
+if not exist out\ (
+  mkdir out
 )
 
 set options=src\ -out:out\main.exe -debug -sanitize:address

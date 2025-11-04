@@ -272,10 +272,8 @@ stdin_readline :: proc() -> (line: string = "", ok: bool = false) {
 		if alloc_err != nil do return
 		defer strings.builder_destroy(&str_builder)
 
-		io_err: io.Error = nil
-		r: rune
 		for {
-			r, _, io_err = io.read_rune(stdin_reader)
+			r, _, io_err := io.read_rune(stdin_reader)
 			if io_err != nil do return
 
 			// check delimiter

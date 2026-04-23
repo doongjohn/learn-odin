@@ -229,12 +229,12 @@ main :: proc() {
 		file_content := "안녕, world!\n"
 
 		fmt.printf("write file: \"{}\"\n", file_path)
-		write_success := os.write_entire_file(file_path, transmute([]byte)file_content)
-		if !write_success do return
+		write_err := os.write_entire_file(file_path, transmute([]byte)file_content)
+		if write_err != os.ERROR_NONE do return
 
 		fmt.printf("read file: \"{}\"\n", file_path)
-		bytes, read_success := os.read_entire_file(file_path)
-		if !read_success do return
+		bytes, read_err := os.read_entire_file(file_path, context.allocator)
+		if read_err != os.ERROR_NONE do return
 		defer delete(bytes)
 
 		str := strings.string_from_ptr(&bytes[0], len(bytes))

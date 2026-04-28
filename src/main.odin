@@ -192,12 +192,16 @@ main :: proc() {
 		}
 
 		i: int = 0
-		for {
-			n, next := iter(&i)
-			if !next do break
-
+		for n in iter(&i) {
 			fmt.printf("{}\n", n)
 		}
+
+		// same as this:
+		// for {
+		// 	 n, next := iter(&i)
+		// 	 if !next do break
+		// 	 fmt.printf("{}\n", n)
+		// }
 	}
 
 	// allocator error

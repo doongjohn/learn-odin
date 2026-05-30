@@ -7,7 +7,6 @@ import "core:log"
 import "core:mem"
 import "core:mem/virtual"
 import "core:os"
-import "core:slice"
 import "core:strings"
 import "core:sys/windows"
 import "core:unicode/utf8"
@@ -251,46 +250,46 @@ main :: proc() {
 
 stdin_readline :: proc() -> (line: string = "", ok: bool = false) {
 	when ODIN_OS == .Windows {
-		utf16_buf: [10000]u16
-		utf16_read_count: u32 = 0
+		utf16_buf: [dynamic]u16
+		defer delete(utf16_buf)
 
 		stdin_handle := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
-		read_console_success := windows.ReadConsoleW(
-			stdin_handle,
-			&utf16_buf,
-			len(utf16_buf),
-			&utf16_read_count,
-			nil,
-		)
-		if !read_console_success do return
 
-		utf8_str, alloc_err := windows.utf16_to_utf8(utf16_buf[0:utf16_read_count])
+		for {
+			char: u16 = 0
+			read_count: u32 = 0
+			windows.ReadConsoleW(stdin_handle, &char, 1, &read_count, nil) or_return
+			if char == '\n' {
+				if len(utf16_buf) != 0 && utf16_buf[len(utf16_buf) - 1] == '\r' {
+					pop(&utf16_buf)
+				}
+				break
+			}
+			append(&utf16_buf, char)
+		}
+
+
+		utf8_str, alloc_err := windows.utf16_to_utf8(utf16_buf[:], context.allocator)
 		if alloc_err != nil do return
 
-		line, alloc_err = strings.clone(strings.trim_right(utf8_str, "\r\n"))
-		if alloc_err != nil do return
+		line = utf8_str
 	} else {
 		stdin_reader := io.to_reader(os.stream_from_handle(os.stdin)) or_return
 
 		str_builder, alloc_err := strings.builder_make()
 		if alloc_err != nil do return
-		defer strings.builder_destroy(&str_builder)
+		defer if !ok do strings.builder_destroy(str_builder)
 
 		for {
 			r, _, io_err := io.read_rune(stdin_reader)
 			if io_err != nil do return
-
-			// check delimiter
-			if slice.contains([]rune{'\n', '\r'}, r) do break
+			if r == '\n' do break
 
 			_, io_err = strings.write_rune(&str_builder, r)
 			if io_err != nil do return
 		}
 
-		// clone the result to extend its lifetime
-		// becuase `strings.builder_destroy` deallocates the buffer
-		line, alloc_err = strings.clone(strings.to_string(str_builder))
-		if alloc_err != nil do return
+		line = strings.to_string(str_builder)
 	}
 
 	ok = true
